@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LinkSourceType {
+  D2C
+  SCHOOL
+}
+
+enum GradeBand {
+  PREPRIMARY
+  PRIMARY
+}
+
+enum SubmissionLevel {
+  DOING_WELL
+  STILL_DEVELOPING
+  REQUIRES_SUPPORT
+}
+
+enum ReportEmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum PdfStatus {
+  NOT_REQUESTED
+  GENERATED
+  FAILED
+}
+
+model School {
+  id              String       @id @default(cuid())
+  name            String
+  slug            String       @unique
+  logoUrl         String?
+  primaryColorHex String?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  checkupLinks    CheckupLink[]
+  submissions     Submission[]
+
+  @@map("schools")
+}
+
+model CheckupLink {
+  id                 String         @id @default(cuid())
+  slug               String         @unique
+  sourceType         LinkSourceType
+  schoolId           String?
+  school             School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  landingTitle       String?
+  landingDescription String?
+  allowedGrades      Json?
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  submissions        Submission[]
+
+  @@index([sourceType])
+  @@index([schoolId])
+  @@map("checkup_links")
+}
+
+model Submission {
+  id                     String           @id @default(cuid())
+  resultToken            String           @unique
+  sourceType             LinkSourceType
+  checkupLinkId          String
+  checkupLink            CheckupLink      @relation(fields: [checkupLinkId], references: [id], onDelete: Restrict)
+  schoolId               String?
+  school                 School?          @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  parentName             String
+  parentEmail            String
+  parentWhatsapp         String?
+  childName              String
+  grade                  String
+  gradeBand              GradeBand
+  schoolNameAtSubmission String?
+  divisionAtSubmission   String?
+  housingSocietyNameAtSubmission String?
+  answers                Json
+  skillScores            Json
+  finalScore             Int
+  finalLevel             SubmissionLevel
+  retakeNumber           Int              @default(0)
+  previousSubmissionId   String?          @unique
+  previousSubmission     Submission?      @relation("SubmissionRetake", fields: [previousSubmissionId], references: [id], onDelete: SetNull)
+  retakeSubmission       Submission?      @relation("SubmissionRetake")
+  report                 Report?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@index([parentEmail, childName, grade])
+  @@index([checkupLinkId, createdAt])
+  @@map("submissions")
+}
+
+model Report {
+  id                     String           @id @default(cuid())
+  submissionId           String           @unique
+  submission             Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reportToken            String           @unique
+  reportUrlPath          String
+  emailStatus            ReportEmailStatus @default(PENDING)
+  emailProviderMessageId String?
+  emailError             String?
+  emailSentAt            DateTime?
+  resendCount            Int              @default(0)
+  pdfStatus              PdfStatus        @default(NOT_REQUESTED)
+  pdfBlobUrl             String?
+  pdfGeneratedAt         DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@index([emailStatus])
+  @@index([pdfStatus])
+  @@map("reports")
+}

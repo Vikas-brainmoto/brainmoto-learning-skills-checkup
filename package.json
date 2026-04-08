@@ -1,0 +1,38 @@
+{
+  "name": "brainmoto-learning-skills-checkup",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "seed": "tsx scripts/seed.ts",
+    "lint": "next lint",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test:unit": "vitest run tests/scoring tests/checkup tests/report tests/email --config vitest.config.ts",
+    "test:api": "vitest run tests/api --config vitest.config.ts",
+    "test:e2e": "echo \"Playwright placeholder: e2e tests will be added in Task 10.x.\""
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@vercel/blob": "^2.3.3",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "prettier": "latest",
+    "prisma": "^6.19.3",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}
