@@ -10,12 +10,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Brainmoto Learning Skills Check-Up",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/logo-icon.webp", type: "image/webp" },
-    ],
-    shortcut: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/logo-icon.webp", type: "image/webp" }],
+    icon: [{ url: "/logo-icon.webp?v=1", type: "image/webp" }],
+    shortcut: [{ url: "/logo-icon.webp?v=1", type: "image/webp" }],
+    apple: [{ url: "/logo-icon.webp?v=1", type: "image/webp" }],
   },
 };
 
