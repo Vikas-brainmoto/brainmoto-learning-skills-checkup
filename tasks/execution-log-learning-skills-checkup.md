@@ -1535,6 +1535,32 @@ Copy this block for each update:
 **Next step**
 - Set production env vars in Vercel and execute soft-launch QA script on live domain
 
+### 2026-04-12 — Favicon setup for browser tab branding
+
+**Goal**
+- Ensure browser tab shows a stable Brainmoto favicon in production
+
+**Work done**
+- Updated `app/layout.tsx` to add explicit metadata icons configuration
+- Added `public/favicon.svg` as primary favicon asset
+- Kept `logo-icon.webp` as fallback icon source
+
+**Tests run**
+- `npx tsc --noEmit`
+- `npm run build`
+
+**Result**
+- Passed
+
+**Issues found**
+- Initial build failure due incorrect `Metadata` import source; fixed by importing `Metadata` from `next`
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Push commit, redeploy on Vercel, and hard-refresh browser to verify new favicon
+
 ---
 
 ## Pending Decisions Log
