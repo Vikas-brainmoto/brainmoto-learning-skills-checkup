@@ -1561,6 +1561,32 @@ Copy this block for each update:
 **Next step**
 - Push commit, redeploy on Vercel, and hard-refresh browser to verify new favicon
 
+### 2026-04-12 — IST timezone display fix for internal timestamps
+
+**Goal**
+- Show submission/email/PDF timestamps in Indian Standard Time on internal dashboard
+
+**Work done**
+- Updated `app/internal/submissions/page.tsx` date formatter to use explicit timezone:
+  - `timeZone: "Asia/Kolkata"`
+  - appended `IST` in display text
+
+**Tests run**
+- `npx tsc --noEmit`
+- `npm run build`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking issues
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Push and redeploy so live internal dashboard reflects IST timestamps
+
 ---
 
 ## Pending Decisions Log

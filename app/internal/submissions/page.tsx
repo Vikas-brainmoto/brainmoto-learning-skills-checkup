@@ -12,11 +12,17 @@ interface InternalSubmissionsPageProps {
   }>;
 }
 
+const DISPLAY_TIME_ZONE = "Asia/Kolkata";
+
 function formatDateTime(value: Date): string {
-  return new Intl.DateTimeFormat("en-IN", {
+  const formatted = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: DISPLAY_TIME_ZONE,
+    hour12: true,
   }).format(value);
+
+  return `${formatted} IST`;
 }
 
 function getConfiguredAdminKey(): string | null {
