@@ -7,9 +7,17 @@ const prismaMocks = vi.hoisted(() => {
   return {
     checkupLinkFindFirst: vi.fn(),
     submissionFindFirst: vi.fn(),
+    submissionFindMany: vi.fn(),
     transaction: vi.fn(),
     submissionCreate: vi.fn(),
     reportCreate: vi.fn(),
+    reportUpdate: vi.fn(),
+  };
+});
+
+const emailMocks = vi.hoisted(() => {
+  return {
+    sendReportEmail: vi.fn(),
   };
 });
 
@@ -20,9 +28,17 @@ vi.mock("../../lib/db/prisma", () => ({
     },
     submission: {
       findFirst: prismaMocks.submissionFindFirst,
+      findMany: prismaMocks.submissionFindMany,
+    },
+    report: {
+      update: prismaMocks.reportUpdate,
     },
     $transaction: prismaMocks.transaction,
   },
+}));
+
+vi.mock("../../lib/email/resend", () => ({
+  sendReportEmail: emailMocks.sendReportEmail,
 }));
 
 import { POST } from "../../app/api/submit/route";
@@ -128,14 +144,23 @@ describe("POST /api/submit", () => {
     });
 
     prismaMocks.submissionFindFirst.mockResolvedValue(null);
+    prismaMocks.submissionFindMany.mockResolvedValue([]);
 
     prismaMocks.submissionCreate.mockResolvedValue({
       id: "sub_1",
       resultToken: "result-token-1",
+      retakeNumber: 0,
     });
 
     prismaMocks.reportCreate.mockResolvedValue({
       id: "report_1",
+    });
+    prismaMocks.reportUpdate.mockResolvedValue({
+      id: "report_1",
+    });
+    emailMocks.sendReportEmail.mockResolvedValue({
+      ok: true,
+      providerMessageId: "msg_1",
     });
 
     prismaMocks.transaction.mockImplementation(async (callback) => {
@@ -165,8 +190,18 @@ describe("POST /api/submit", () => {
     expect(response.status).toBe(201);
     expect(body.token).toBe("result-token-1");
     expect(body.resultPath).toBe("/result/result-token-1");
+    expect(body.retakeNumber).toBe(0);
     expect(prismaMocks.submissionCreate).toHaveBeenCalledTimes(1);
     expect(prismaMocks.reportCreate).toHaveBeenCalledTimes(1);
+    expect(prismaMocks.reportUpdate).toHaveBeenCalledTimes(1);
+    expect(prismaMocks.submissionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          retakeNumber: 0,
+          previousSubmissionId: null,
+        }),
+      }),
+    );
   });
 
   it("accepts a valid primary school submission", async () => {
@@ -319,5 +354,108 @@ describe("POST /api/submit", () => {
     expect(secondBody.resultPath).toBe("/result/result-token-1");
     expect(prismaMocks.submissionCreate).toHaveBeenCalledTimes(1);
     expect(prismaMocks.reportCreate).toHaveBeenCalledTimes(1);
+    expect(prismaMocks.reportUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks retake attempts before 30 days", async () => {
+    const payload = createPayload({
+      source: "d2c",
+      grade: "Nursery",
+    });
+
+    prismaMocks.submissionFindMany.mockResolvedValue([
+      {
+        id: "sub_original",
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        retakeNumber: 0,
+        previousSubmissionId: null,
+      },
+    ]);
+
+    const response = await POST(makeRequest(payload));
+    const body = (await response.json()) as {
+      message?: string;
+      retake?: {
+        isEligible?: boolean;
+        reason?: string;
+        daysRemaining?: number;
+      };
+    };
+
+    expect(response.status).toBe(409);
+    expect(body.message).toContain("Retake is available 30 days after first submission.");
+    expect(body.retake?.isEligible).toBe(false);
+    expect(body.retake?.reason).toBe("WAIT_PERIOD");
+    expect(typeof body.retake?.daysRemaining).toBe("number");
+    expect(prismaMocks.submissionCreate).not.toHaveBeenCalled();
+  });
+
+  it("allows one retake after 30 days and links to original submission", async () => {
+    const payload = createPayload({
+      source: "d2c",
+      grade: "Nursery",
+    });
+
+    prismaMocks.submissionFindMany.mockResolvedValue([
+      {
+        id: "sub_original",
+        createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000),
+        retakeNumber: 0,
+        previousSubmissionId: null,
+      },
+    ]);
+
+    prismaMocks.submissionCreate.mockResolvedValue({
+      id: "sub_retake",
+      resultToken: "result-token-retake",
+      retakeNumber: 1,
+    });
+
+    const response = await POST(makeRequest(payload));
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(201);
+    expect(body.retakeNumber).toBe(1);
+    expect(prismaMocks.submissionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          retakeNumber: 1,
+          previousSubmissionId: "sub_original",
+        }),
+      }),
+    );
+  });
+
+  it("blocks second retake attempts after limit is used", async () => {
+    const payload = createPayload({
+      source: "d2c",
+      grade: "Nursery",
+    });
+
+    prismaMocks.submissionFindMany.mockResolvedValue([
+      {
+        id: "sub_original",
+        createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+        retakeNumber: 0,
+        previousSubmissionId: null,
+      },
+      {
+        id: "sub_retake",
+        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+        retakeNumber: 1,
+        previousSubmissionId: "sub_original",
+      },
+    ]);
+
+    const response = await POST(makeRequest(payload));
+    const body = (await response.json()) as {
+      message?: string;
+      retake?: { reason?: string };
+    };
+
+    expect(response.status).toBe(409);
+    expect(body.message).toBe("Retake limit reached. Only one retake is allowed in V1.");
+    expect(body.retake?.reason).toBe("LIMIT_REACHED");
+    expect(prismaMocks.submissionCreate).not.toHaveBeenCalled();
   });
 });

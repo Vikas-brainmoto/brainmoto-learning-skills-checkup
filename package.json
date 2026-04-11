@@ -14,9 +14,11 @@
     "format:write": "prettier --write .",
     "test:unit": "vitest run tests/scoring tests/checkup tests/report tests/email --config vitest.config.ts",
     "test:api": "vitest run tests/api --config vitest.config.ts",
-    "test:e2e": "echo \"Playwright placeholder: e2e tests will be added in Task 10.x.\""
+    "test:e2e": "playwright test --config playwright.config.ts",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@fontsource/poppins": "^5.2.7",
     "@prisma/client": "^6.19.3",
     "@vercel/blob": "^2.3.3",
     "next": "latest",
@@ -24,6 +26,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

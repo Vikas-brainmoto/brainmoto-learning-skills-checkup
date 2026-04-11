@@ -7,3 +7,8 @@ coverage
 !.env.example
 *.tsbuildinfo
 .DS_Store
+playwright-report
+test-results
+
+# Local downloaded report files
+Download_*.pdf

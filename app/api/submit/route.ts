@@ -4,13 +4,16 @@ import {
   GradeBand,
   LinkSourceType,
   Prisma,
+  ReportEmailStatus,
   SubmissionLevel,
   type CheckupLink,
 } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { validateSubmissionPayload } from "../../../lib/checkup/validation";
+import { evaluateRetakeEligibility } from "../../../lib/checkup/retake";
 import { prisma } from "../../../lib/db/prisma";
+import { sendReportEmail } from "../../../lib/email/resend";
 import { calculateCheckupScores } from "../../../lib/scoring/engine";
 import {
   ALL_GRADES,
@@ -73,6 +76,15 @@ function mapFlowToGradeBand(flow: string): GradeBand {
 
 function generateToken(): string {
   return crypto.randomBytes(24).toString("base64url");
+}
+
+function getAppBaseUrl(): string {
+  const value = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (!value) {
+    return "http://localhost:3000";
+  }
+
+  return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
 async function resolveSubmissionLink(
@@ -243,6 +255,54 @@ export async function POST(request: Request) {
     );
   }
 
+  const submissionHistory = await prisma.submission.findMany({
+    where: {
+      parentEmail: normalizedParentEmail,
+      childName: normalizedChildName,
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      retakeNumber: true,
+      previousSubmissionId: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  const retakeDecision = evaluateRetakeEligibility({
+    submissions: submissionHistory,
+  });
+
+  if (retakeDecision.type === "TOO_EARLY") {
+    return NextResponse.json(
+      {
+        message: `Retake is available 30 days after first submission. Next eligible date: ${retakeDecision.nextEligibleAt.toISOString().slice(0, 10)}.`,
+        retake: {
+          isEligible: false,
+          reason: "WAIT_PERIOD",
+          nextEligibleAt: retakeDecision.nextEligibleAt.toISOString(),
+          daysRemaining: retakeDecision.daysRemaining,
+        },
+      },
+      { status: 409 },
+    );
+  }
+
+  if (retakeDecision.type === "RETAKE_LIMIT_REACHED") {
+    return NextResponse.json(
+      {
+        message: "Retake limit reached. Only one retake is allowed in V1.",
+        retake: {
+          isEligible: false,
+          reason: "LIMIT_REACHED",
+        },
+      },
+      { status: 409 },
+    );
+  }
+
   const scoreConfig = getQuestionConfigForGrade(grade);
   const scoreResult = calculateCheckupScores(
     scoreConfig,
@@ -282,6 +342,8 @@ export async function POST(request: Request) {
           skillScores: scoreResult.skillScores as unknown as Prisma.InputJsonValue,
           finalScore: scoreResult.finalScore,
           finalLevel: mapFinalLevelToSubmissionLevel(scoreResult.finalLevel),
+          retakeNumber: retakeDecision.retakeNumber,
+          previousSubmissionId: retakeDecision.previousSubmissionId,
         },
       });
 
@@ -296,11 +358,55 @@ export async function POST(request: Request) {
       return submission;
     });
 
+    const reportUrl = `${getAppBaseUrl()}/report/${reportToken}`;
+    try {
+      const emailResult = await sendReportEmail({
+        toEmail: normalizedParentEmail,
+        parentName: normalizedParentName,
+        childName: normalizedChildName,
+        reportUrl,
+      });
+
+      if (emailResult.ok) {
+        await prisma.report.update({
+          where: { reportToken },
+          data: {
+            emailStatus: ReportEmailStatus.SENT,
+            emailProviderMessageId: emailResult.providerMessageId ?? null,
+            emailError: null,
+            emailSentAt: new Date(),
+          },
+        });
+      } else {
+        await prisma.report.update({
+          where: { reportToken },
+          data: {
+            emailStatus: ReportEmailStatus.FAILED,
+            emailError: emailResult.error ?? "Email delivery failed.",
+          },
+        });
+      }
+    } catch (emailError) {
+      const message =
+        emailError instanceof Error
+          ? emailError.message
+          : "Email delivery failed unexpectedly.";
+
+      await prisma.report.update({
+        where: { reportToken },
+        data: {
+          emailStatus: ReportEmailStatus.FAILED,
+          emailError: message,
+        },
+      });
+    }
+
     return NextResponse.json(
       {
         message: "Submission saved successfully.",
         token: createdSubmission.resultToken,
         resultPath: `/result/${createdSubmission.resultToken}`,
+        retakeNumber: createdSubmission.retakeNumber,
       },
       { status: 201 },
     );

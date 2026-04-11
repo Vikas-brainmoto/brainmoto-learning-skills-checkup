@@ -10,13 +10,49 @@ interface ScoreHeroProps {
   logoUrl: string;
   finalScore: number;
   finalLevel: FinalLevelLabel;
-  interpretation: string;
   parentEmail: string;
+  reportPath?: string | null;
+  emailStatus?: "PENDING" | "SENT" | "FAILED" | null;
+}
+
+function displayValue(value: string | null): string {
+  if (!value) {
+    return "-";
+  }
+
+  const normalized = value.trim();
+  return normalized === "" ? "-" : normalized;
+}
+
+function getStatusColorClass(level: FinalLevelLabel): string {
+  switch (level) {
+    case "Doing Well":
+      return "ls-badge-green";
+    case "Still Developing":
+      return "ls-badge-amber";
+    case "Requires Support":
+      return "ls-badge-red";
+    default:
+      return "ls-badge-amber";
+  }
+}
+
+function getScoreToneClass(level: FinalLevelLabel): string {
+  switch (level) {
+    case "Doing Well":
+      return "ls-score-tone-green";
+    case "Still Developing":
+      return "ls-score-tone-amber";
+    case "Requires Support":
+      return "ls-score-tone-red";
+    default:
+      return "ls-score-tone-amber";
+  }
 }
 
 export function ScoreHero({
   source,
-  childName,
+  childName: _childName,
   grade,
   schoolName,
   division,
@@ -24,34 +60,93 @@ export function ScoreHero({
   logoUrl,
   finalScore,
   finalLevel,
-  interpretation,
   parentEmail,
+  reportPath,
+  emailStatus = null,
 }: ScoreHeroProps) {
+  const statusClassName = getStatusColorClass(finalLevel);
+  const scoreToneClassName = getScoreToneClass(finalLevel);
+
   return (
-    <section
-      aria-label="Score hero"
-      style={{ display: "grid", gap: "0.75rem", maxWidth: "760px" }}
-    >
-      <img src={logoUrl} alt={`${schoolName} logo`} width={88} height={88} />
-      <h1 style={{ margin: 0, wordBreak: "break-word" }}>
-        {childName}
-        {"'s "}
-        Learning Skills Check-Up Result
-      </h1>
-      <p style={{ margin: 0 }}>Grade: {grade}</p>
-      <p style={{ margin: 0, wordBreak: "break-word" }}>School: {schoolName || "-"}</p>
-      <p style={{ margin: 0, wordBreak: "break-word" }}>Division: {division || "-"}</p>
-      {source === "d2c" ? (
-        <p style={{ margin: 0, wordBreak: "break-word" }}>
-          Housing Society: {housingSocietyName || "-"}
+    <section className="ls-overview-block" aria-label="Score hero">
+      <header className="ls-brand-header">
+        <img src={logoUrl} alt="Brainmoto logo" className="ls-brand-logo" />
+        <h1 className="ls-title-pill">Learning Skills Check-Up</h1>
+      </header>
+
+      <section className="ls-meta-grid">
+        <p className="ls-meta-cell">
+          <strong>Student Name:</strong> {displayValue(_childName)}
         </p>
-      ) : null}
-      <p style={{ margin: 0, fontWeight: 700 }}>Final Score: {finalScore}/100</p>
-      <p style={{ margin: 0, fontWeight: 700 }}>Final Label: {finalLevel}</p>
-      <p style={{ margin: 0 }}>{interpretation}</p>
-      <p style={{ margin: 0, wordBreak: "break-word" }}>
-        Detailed report link will be sent to {parentEmail}.
-      </p>
+        <p className="ls-meta-cell">
+          <strong>Grade:</strong> {displayValue(grade)}
+        </p>
+        <p className="ls-meta-cell">
+          <strong>School Name:</strong> {displayValue(schoolName)}
+        </p>
+        <p className="ls-meta-cell">
+          <strong>Division:</strong> {displayValue(division)}
+        </p>
+      </section>
+
+      <section className="ls-score-card">
+        <div className="ls-score-left">
+          <h2>Learning Ease Score</h2>
+          <p className={`ls-score-number ${scoreToneClassName}`}>
+            <strong>{finalScore}</strong>
+            <span>/ 100</span>
+          </p>
+          <p className="ls-score-caption">
+            Higher score = smoother day-to-day learning readiness
+          </p>
+        </div>
+        <div className="ls-score-divider" />
+        <div className="ls-score-right">
+          <div className="ls-legend-row">
+            <span className="ls-badge-green ls-legend-badge">Green</span>
+            <span className="ls-legend-copy">Learning looks mostly smooth</span>
+          </div>
+          <div className="ls-legend-row">
+            <span className="ls-badge-amber ls-legend-badge">Amber</span>
+            <span className="ls-legend-copy">Some support can help</span>
+          </div>
+          <div className="ls-legend-row">
+            <span className="ls-badge-red ls-legend-badge">Red</span>
+            <span className="ls-legend-copy">High-priority signs seen</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="ls-result-note">
+        <p>
+          <strong>Overall Support Status:</strong>{" "}
+          <span className={statusClassName}>{finalLevel}</span>
+        </p>
+        <p>
+          {emailStatus === "SENT" ? (
+            <>
+              Detailed report link has been sent to <strong>{parentEmail}</strong>.
+            </>
+          ) : emailStatus === "FAILED" ? (
+            "We could not send the report email right now. You can still use the report links below."
+          ) : (
+            <>
+              We are sending the detailed report link to{" "}
+              <strong>{parentEmail}</strong>.
+            </>
+          )}
+        </p>
+        {source === "d2c" ? (
+          <p>
+            <strong>Housing Society:</strong> {displayValue(housingSocietyName)}
+          </p>
+        ) : null}
+        {reportPath ? (
+          <p>
+            <a href={reportPath}>Open full report</a>
+          </p>
+        ) : null}
+      </section>
     </section>
   );
 }

@@ -19,14 +19,12 @@ export default async function SchoolCheckupPage({ params }: SchoolCheckupPagePro
   }
 
   return (
-    <main>
+    <main className="checkup-page-shell">
       <ChildDetailsForm
         source="school"
         schoolSlug={link.slug}
         presetSchoolName={link.schoolName}
         allowedGrades={link.allowedGrades}
-        landingTitle={link.landingTitle}
-        landingDescription={link.landingDescription}
         logoUrl={link.logoUrl}
       />
     </main>

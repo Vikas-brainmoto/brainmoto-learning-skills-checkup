@@ -6,6 +6,7 @@
 - `tsconfig.json` - TypeScript compiler configuration.
 - `next-env.d.ts` - Next.js type references.
 - `vitest.config.ts` - Vitest runner configuration.
+- `playwright.config.ts` - Playwright E2E runner and local server configuration.
 - `.eslintrc.json` - ESLint configuration scaffold.
 - `.prettierrc` - Prettier formatting rules.
 - `.prettierignore` - Paths ignored by Prettier.
@@ -20,6 +21,7 @@
 - `app/checkup/[slug]/page.tsx` - School-branded check-up page.
 - `app/result/[token]/page.tsx` - Instant result screen after submission.
 - `app/report/[token]/page.tsx` - Full web report page.
+- `app/internal/submissions/page.tsx` - Minimal internal submissions view with report resend action.
 - `app/api/submit/route.ts` - Submission API that validates, scores, saves, and returns token.
 - `app/api/report/send/[token]/route.ts` - Sends the report email.
 - `app/api/report/pdf/[token]/route.ts` - Generates or returns PDF for a report.
@@ -37,6 +39,7 @@
 - `lib/scoring/thresholds.ts` - Score-to-label mapping.
 - `lib/db/prisma.ts` - Shared Prisma client singleton for server-side data access.
 - `lib/checkup/validation.ts` - Shared client/server check-up payload validation rules.
+- `lib/checkup/retake.ts` - Retake eligibility logic (30-day wait, one-retake limit, linkage metadata).
 - `lib/links/resolve-link.ts` - Resolves D2C and school link configuration.
 - `lib/report/build-report-data.ts` - Builds display data from a saved submission.
 - `lib/report/content.ts` - Flow-specific narrative content for Primary and Pre-primary report sections.
@@ -51,7 +54,9 @@
 - `tests/scoring/engine.test.ts` - Unit tests for scoring engine.
 - `tests/scoring/flow.test.ts` - Unit tests for grade branching helpers.
 - `tests/checkup/validation.test.ts` - Unit tests for details and answer validation.
+- `tests/checkup/retake.test.ts` - Unit tests for retake eligibility boundaries and limit checks.
 - `tests/report/build-report-data.test.ts` - Unit tests for report data assembly and skill ordering.
+- `tests/report/score-hero.test.ts` - Unit tests for score tone color mapping on result/report hero.
 - `tests/email/resend.test.ts` - Unit tests for Resend helper success/failure/env handling.
 - `tests/api/submit.test.ts` - API tests for submission route.
 - `tests/api/report-send.test.ts` - API tests for report email send success and failure paths.
@@ -65,6 +70,7 @@
 - Treat the database save as the primary success event; email/PDF are follow-up delivery steps.
 - School logos are mandatory in V1 for school links; D2C uses a default Brainmoto image/logo.
 - Minimal internal admin view is required in V1.
+- A4 PDF parity target: Primary report = 5 pages, Pre-primary report = 4 pages (verify via `pdfinfo` on generated PDFs).
 - Update this file as new relevant files appear.
 
 ## Tasks
@@ -122,11 +128,11 @@
   - [x] 8.3 Store PDF file location in Vercel Blob.
   - [x] 8.4 Test PDF layout, page breaks, and retry behavior.
 
-- [ ] 9.0 Retake rules and admin basics
-  - [ ] 9.1 Add retake eligibility logic.
-  - [ ] 9.2 Prevent early retakes.
-  - [ ] 9.3 Store `retakeNumber` and `previousSubmissionId`.
-  - [ ] 9.4 Build a minimal internal submissions view or admin action path (required in V1).
+- [x] 9.0 Retake rules and admin basics
+  - [x] 9.1 Add retake eligibility logic.
+  - [x] 9.2 Prevent early retakes.
+  - [x] 9.3 Store `retakeNumber` and `previousSubmissionId`.
+  - [x] 9.4 Build a minimal internal submissions view or admin action path (required in V1).
 
 - [ ] 10.0 Launch QA and hardening
   - [ ] 10.1 Run all gate checks in `test-gates-learning-skills-checkup.md`.

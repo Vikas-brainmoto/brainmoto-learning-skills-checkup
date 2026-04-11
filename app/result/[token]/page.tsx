@@ -1,4 +1,4 @@
-import { LinkSourceType, SubmissionLevel } from "@prisma/client";
+import { LinkSourceType, ReportEmailStatus, SubmissionLevel } from "@prisma/client";
 import { notFound } from "next/navigation";
 
 import { ScoreHero } from "../../../components/report/ScoreHero";
@@ -86,19 +86,6 @@ function parseSkillSnapshotItems(value: unknown): SkillSnapshotItem[] {
   return parsed;
 }
 
-function getInterpretationText(level: FinalLevelLabel): string {
-  switch (level) {
-    case "Doing Well":
-      return "Your child is doing well overall. Keep supporting these positive learning habits.";
-    case "Still Developing":
-      return "Your child is still developing in some areas. Small, regular practice can help improve confidence.";
-    case "Requires Support":
-      return "Your child may need extra support in key learning areas. Early support can make a strong difference.";
-    default:
-      return "Your child has completed the check-up.";
-  }
-}
-
 export default async function ResultPage({ params }: ResultPageProps) {
   const { token } = await params;
 
@@ -109,6 +96,12 @@ export default async function ResultPage({ params }: ResultPageProps) {
         select: {
           name: true,
           logoUrl: true,
+        },
+      },
+      report: {
+        select: {
+          reportToken: true,
+          emailStatus: true,
         },
       },
     },
@@ -153,9 +146,13 @@ export default async function ResultPage({ params }: ResultPageProps) {
     source === "school"
       ? (submission.school?.logoUrl ?? "/logo.webp")
       : "/logo.webp";
+  const reportPath = submission.report
+    ? `/report/${submission.report.reportToken}`
+    : null;
+  const emailStatus: ReportEmailStatus | null = submission.report?.emailStatus ?? null;
 
   return (
-    <main style={{ display: "grid", gap: "1.5rem", padding: "1.5rem" }}>
+    <main className="result-page-shell">
       <ScoreHero
         source={source}
         childName={submission.childName}
@@ -166,8 +163,9 @@ export default async function ResultPage({ params }: ResultPageProps) {
         logoUrl={logoUrl}
         finalScore={submission.finalScore}
         finalLevel={finalLevel}
-        interpretation={getInterpretationText(finalLevel)}
         parentEmail={submission.parentEmail}
+        reportPath={reportPath}
+        emailStatus={emailStatus}
       />
       <SkillSnapshot skills={orderedSkillScores} />
     </main>

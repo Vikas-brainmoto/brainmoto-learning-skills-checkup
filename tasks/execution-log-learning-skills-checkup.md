@@ -16,8 +16,8 @@ Rules:
 - **Project:** Brainmoto Learning Skills Check-Up
 - **PRD:** `001-prd-learning-skills-checkup.md`
 - **Task List:** `tasks-learning-skills-checkup.md`
-- **Status:** Task 8.0 complete in code and tests; live Blob success path needs valid store provisioning in local env
-- **Current Focus:** Gate G final live success check (Blob store token) and then Task 9.1 retake eligibility logic
+- **Status:** D2C + school E2E now passing locally; email delivery gate still pending domain verification and final manual checks
+- **Current Focus:** Premium UI polish for checkup flow and final report A4 parity refinement
 
 ---
 
@@ -935,6 +935,606 @@ Copy this block for each update:
 **Next step**
 - Provision a valid Vercel Blob store + read-write token, re-run one live PDF API request, then move to Task `9.1`
 
+### 2026-04-09 — Gate G live Blob success verification completed
+
+**Goal**
+- Confirm PDF API success path works with valid Blob token/store configuration
+
+**Work done**
+- Re-ran live PDF API for a recent report token after updating `BLOB_READ_WRITE_TOKEN`
+- Confirmed successful response and Blob URL header from runtime route
+
+**Tests run**
+- `curl -sS -D /tmp/pdf.headers -o /tmp/report.pdf "http://localhost:3000/api/report/pdf/AzFNQ_jzLB27tXOrNs9iel7ioIe3o56_"`
+- `head -n 1 /tmp/pdf.headers`
+- `grep -iE "content-type|x-report-pdf-blob-url" /tmp/pdf.headers`
+
+**Result**
+- Passed (`HTTP/1.1 200 OK`, `content-type: application/pdf`, blob URL header present)
+
+**Issues found**
+- No blockers remain in Task 8 / Gate G scope
+
+**Task list updates**
+- No checkbox changes (Task `8.0` and `8.4` were already marked complete)
+
+**Next step**
+- Task `9.1`: implement retake eligibility logic
+
+### 2026-04-09 — Tasks 9.1 to 9.3 retake policy implemented
+
+**Goal**
+- Implement and enforce retake policy: one retake max, allowed only after 30 days, and linked retake metadata persistence
+
+**Work done**
+- Added retake policy helper in `lib/checkup/retake.ts`:
+  - first-submission detection
+  - 30-day wait-window evaluation
+  - one-retake-limit detection
+  - retake metadata decision (`retakeNumber`, `previousSubmissionId`)
+- Integrated retake enforcement into `app/api/submit/route.ts`:
+  - preserved existing rapid duplicate-click prevention
+  - added history lookup by normalized `parentEmail + childName`
+  - blocks early retakes with `409` and clear next-eligible date/details
+  - blocks second retake attempts with `409`
+  - stores `retakeNumber` and `previousSubmissionId` on creation
+  - includes `retakeNumber` in success response payload
+- Expanded API coverage in `tests/api/submit.test.ts`:
+  - early retake blocked (<30 days)
+  - one eligible retake allowed (>=30 days) with linkage assertion
+  - second retake blocked after limit is consumed
+- Added unit coverage in `tests/checkup/retake.test.ts`:
+  - no-history first submission
+  - too-early calculation
+  - exact 30-day boundary eligibility
+  - retake-limit reached path
+
+**Tests run**
+- `npm run test:api`
+- `npm run test:unit`
+- `npx tsc --noEmit`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking issues
+
+**Task list updates**
+- Marked task `9.1` complete
+- Marked task `9.2` complete
+- Marked task `9.3` complete
+
+**Next step**
+- Task `9.4`: build minimal internal submissions view or admin action path
+
+### 2026-04-09 — Task 9.4 minimal internal submissions view implemented
+
+**Goal**
+- Complete V1 requirement for a minimal internal admin view/action path to review submissions and trigger resend
+
+**Work done**
+- Added internal admin page: `app/internal/submissions/page.tsx`
+  - key-gated access via `?key=` matched against `INTERNAL_ADMIN_KEY`
+  - lists latest 100 submissions with:
+    - source/context details
+    - final score/level and retake number
+    - report email and PDF status
+    - links to result/report/PDF blob
+  - includes `Force Resend` action per report row
+- Wired resend action to reuse existing report send route logic with `forceResend: true`
+- Updated environment scaffolding:
+  - added `INTERNAL_ADMIN_KEY` to `.env.example`
+- Updated setup docs:
+  - added internal admin usage steps in `README.md`
+
+**Tests run**
+- `npm run test:api`
+- `npm run test:unit`
+- `npx tsc --noEmit`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking issues
+
+**Task list updates**
+- Marked task `9.4` complete
+- Marked task `9.0` complete
+
+**Next step**
+- Task `10.1`: run full gate checks from `test-gates-learning-skills-checkup.md`
+
+### 2026-04-09 — Task 10.1 gate-check run (automated pass, manual pending)
+
+**Goal**
+- Execute launch gate checks and identify any remaining readiness gaps before final QA
+
+**Work done**
+- Ran automated quality gates for current codebase:
+  - unit tests
+  - API tests
+  - e2e command placeholder
+- Re-checked sample report PDFs to prepare exact visual parity work for next refinement slice
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run test:e2e`
+
+**Result**
+- Partially passed
+
+**Issues found**
+- `test:e2e` is still a placeholder message; real Playwright flow coverage is not implemented yet
+- Full gate completion still requires manual browser runs for D2C and school paths as listed in gate file
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Implement report/result visual parity changes (sample color system + layout), including removal of per-skill numeric scores in UI
+
+### 2026-04-09 — Per-skill numeric scores removed from UI snapshot blocks
+
+**Goal**
+- Align with updated product direction: show only consolidated score and hide numeric score values per skill in parent-facing UI
+
+**Work done**
+- Updated result snapshot component to show skill label only:
+  - `components/report/SkillSnapshot.tsx`
+- Updated full report snapshot section to show skill label only:
+  - `components/report/ReportDocument.tsx`
+- Consolidated score display remains unchanged (`Learning Ease Score` out of 100)
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npx tsc --noEmit`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking issues
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Implement full visual parity pass to match provided sample templates (colors, spacing, typography, table treatment)
+
+### 2026-04-09 — Visual parity hardening and regression checks
+
+**Goal**
+- Stabilize report snapshot/table rendering across browser and PDF generation paths, then re-run automated checks
+
+**Work done**
+- Verified current report HTML/CSS output contains table-based snapshot layout with support-status badges and no per-skill numeric scores
+- Added PDF rendering hardening in `lib/report/pdf.ts`:
+  - set fixed headless Chrome window size (`1440x2200`)
+  - enabled hidden scrollbars for cleaner print capture
+- Re-ran automated checks after the PDF hardening change
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm run test:e2e` (still placeholder command)
+
+**Result**
+- Partially passed
+
+**Issues found**
+- E2E flow coverage is still placeholder-only (no real Playwright journey tests yet)
+- Manual launch checks for D2C and school branded flows remain pending
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Execute/manual-verify Task `10.2` and `10.3` flows on current UI, then complete Task `10.4` email/report-link delivery checks
+
+### 2026-04-09 — Playwright E2E implementation for D2C and school flows
+
+**Goal**
+- Replace `test:e2e` placeholder with real browser-based end-to-end tests for Gate H readiness
+
+**Work done**
+- Added Playwright runner configuration in `playwright.config.ts`:
+  - Chromium desktop project
+  - local base URL support via `PLAYWRIGHT_BASE_URL`
+  - auto web server startup when base URL is not provided
+- Replaced placeholder spec with real E2E journeys in `tests/e2e/checkup-flow.spec.ts`:
+  - D2C flow from `/checkup` to `/result/[token]`
+  - school-branded flow from `/checkup/greenfield-primary-school` to `/result/[token]`
+  - assertions for result-page context and no per-skill numeric score text pattern
+- Updated scripts in `package.json`:
+  - `test:e2e` now runs Playwright
+  - `test:e2e:install` added for one-time Chromium install
+- Updated setup docs:
+  - `README.md` now includes Playwright install and E2E prerequisites
+  - added beginner-safe Resend sender guidance section
+- Updated env template:
+  - `RESEND_FROM_EMAIL` example now points to verified-domain style sender
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npx tsc --noEmit`
+- `npm run test:e2e:install`
+- `PLAYWRIGHT_BASE_URL=http://localhost:4010 npm run test:e2e`
+
+**Result**
+- Partially passed
+
+**Issues found**
+- Playwright browser launch fails in this sandbox environment (`sandbox_host_linux.cc` permission error), so E2E browser run could not complete here
+- E2E should run on your local machine after browser install and with app reachable at localhost
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Run `npm run test:e2e` on local machine, then complete manual checks for Task `10.2`, `10.3`, and `10.4`
+
+### 2026-04-11 — E2E school-flow assertion fix after first local run
+
+**Goal**
+- Fix failing school-branded E2E test reported from local run
+
+**Work done**
+- Reviewed Playwright failure artifacts and page snapshot
+- Identified root cause: heading expectation was too strict for school-branded landing title
+- Updated `tests/e2e/checkup-flow.spec.ts` school test:
+  - heading check now asserts visible `h1` instead of fixed text
+  - added explicit assertion for `School flow (greenfield-primary-school).`
+
+**Tests run**
+- `npx tsc --noEmit`
+
+**Result**
+- Passed (typecheck)
+
+**Issues found**
+- Requires local re-run of Playwright to confirm full pass in your environment
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Re-run `npm run test:e2e` locally and continue manual launch checks
+
+### 2026-04-11 — Premium checkup form/question UI polish
+
+**Goal**
+- Upgrade the checkup details + question flow from functional baseline to premium branded UI/UX while preserving behavior
+
+**Work done**
+- Refactored `components/checkup/ChildDetailsForm.tsx` markup:
+  - premium panel layout with branded header and flow tag
+  - structured two-column details form grid
+  - styled validation/error blocks
+  - improved question-step action layout
+  - removed raw JSON debug preview from submit section
+- Refactored `components/checkup/QuestionCard.tsx`:
+  - card-based question presentation
+  - responsive answer option cards with selected state styling
+- Refactored `components/checkup/ProgressBar.tsx`:
+  - custom visual progress track/fill while retaining semantic `<progress>`
+- Updated route wrappers:
+  - `app/checkup/page.tsx`
+  - `app/checkup/[slug]/page.tsx`
+  - both now use `checkup-page-shell` for consistent premium page background/layout
+- Extended `app/globals.css` with dedicated checkup design system classes (`checkup-*`)
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npx tsc --noEmit`
+- `npm run build`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking code issues
+- Email delivery manual gate still pending Resend domain DNS verification
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Complete email domain verification, run live email send check (Task `10.4`), then execute A4 pixel-parity pass for report templates
+
+### 2026-04-11 — A4 report parity page-count implementation
+
+**Goal**
+- Enforce deterministic A4 pagination to match sample/template page counts
+
+**Work done**
+- Updated `components/report/ReportDocument.tsx`:
+  - removed inline break style dependency from detail pages
+  - kept skill-group rendering by grade band (Primary: 2 skills/page, Pre-primary: 3 skills/page)
+- Updated `app/globals.css` print rules:
+  - forced `.ls-detail-page` to `page-break-after: always` / `break-after: page`
+  - retained last-page override to avoid trailing blank page
+- Updated `lib/report/pdf.ts`:
+  - added `--no-pdf-header-footer` alongside existing print flag for broader Chromium compatibility
+- Confirmed local verification caveat:
+  - `/api/report/pdf/[token]` renders using `NEXT_PUBLIC_APP_URL`; parity validation must use the active app origin (or direct `generateReportPdf` against that origin)
+
+**Tests run**
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm run test:unit`
+- `npm run test:api`
+- `npx tsx -e '...generateReportPdf({ reportUrl: "http://localhost:4030/report/<token>" })...'`
+- `pdfinfo /tmp/primary_direct_4030.pdf`
+- `pdfinfo /tmp/pre_direct_4030.pdf`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking code issues
+- If `NEXT_PUBLIC_APP_URL` points to a different port/domain than the running app, PDF API checks can appear stale because rendering is done against that configured base URL
+
+**Task list updates**
+- Added A4 parity target note in `tasks-learning-skills-checkup.md`
+- No checkbox changes
+
+**Next step**
+- Continue pixel-level spacing/typography/color parity against provided sample PDFs and then run full Gate H checks
+
+### 2026-04-11 — Checkup form/question UX streamlining + brand palette alignment
+
+**Goal**
+- Simplify the first-page form and question-step presentation while aligning the visual system to Brainmoto brand colors
+
+**Work done**
+- Updated `components/checkup/ChildDetailsForm.tsx`:
+  - removed pretitle/subtitle/flow pill from header
+  - standardized page title to `Learning Skills Check-Up`
+  - kept logo in header and moved it to the right side
+  - reordered fields so `Child Name` and `Grade` come before parent details
+  - added trust microcopy explaining why email/WhatsApp are collected
+  - removed duplicated question-set heading from question step
+- Updated `components/checkup/ProgressBar.tsx`:
+  - consolidated step metadata into one line: flow + current question + answered count + percent
+- Updated `components/checkup/QuestionCard.tsx`:
+  - removed duplicate `Question X of Y` text from inside the card
+- Updated `app/globals.css`:
+  - applied brand palette from `Brainmoto - HEX Codes & Font Size.pdf`
+  - centered form container consistently
+  - refreshed controls/buttons/progress/options with purple-lavender-mustard theme
+- Updated checkup route pages:
+  - removed unused landing title/description props from `app/checkup/page.tsx` and `app/checkup/[slug]/page.tsx`
+- Updated result/report handoff:
+  - added a direct `Download PDF (A4)` link on result page via `components/report/ScoreHero.tsx` and `app/result/[token]/page.tsx` so PDF verification can be done before email setup
+- Updated E2E assertions in `tests/e2e/checkup-flow.spec.ts` for the new consolidated progress text
+
+**Tests run**
+- `npx tsc --noEmit`
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run build`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking code issues
+- Full browser rendering check remains manual in local dev (`npm run dev`) for visual acceptance
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Final visual QA pass on `/checkup` and `/checkup/greenfield-primary-school`, then continue report pixel-parity refinements
+
+### 2026-04-11 — PDF typography parity pass (font embedding + print spacing)
+
+**Goal**
+- Reduce “squeezed” PDF appearance and align generated reports closer to sample/template typography
+
+**Work done**
+- Installed local Poppins font package: `@fontsource/poppins`
+- Updated root layout to load Poppins weights locally:
+  - `app/layout.tsx`
+- Updated report styling in `app/globals.css`:
+  - made title pill width/content behavior closer to sample
+  - tuned print spacing/typography scale across:
+    - meta cells
+    - score card
+    - snapshot heading/table
+    - detail section title/body/list spacing
+    - footer spacing
+  - kept A4 print size and deterministic page breaks
+- Improved mobile responsiveness for report/result surfaces:
+  - applied single-column score/meta treatment and mobile table behavior to both `report-page-shell` and `result-page-shell`
+- Regenerated PDF from updated build and verified embedded fonts are now Poppins (not Arimo fallback)
+
+**Tests run**
+- `npx tsc --noEmit`
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run build`
+- `pdffonts /tmp/generated_after_typography_patch.pdf`
+- `pdfinfo /tmp/generated_after_typography_patch.pdf`
+- `npm run build` (post-mobile CSS refinement)
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking code issues
+- Remaining parity gap is now mostly fine-grained spacing/weight tuning versus Canva-exported originals
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Run a strict page-by-page visual diff loop against both sample PDFs and refine remaining micro-spacing values
+
+### 2026-04-11 — Score color bug fix + strict A4 calibration pass
+
+**Goal**
+- Fix result-page composite score color mismatch and complete strict page-by-page A4 parity refinement against sample templates
+
+**Work done**
+- Updated `components/report/ScoreHero.tsx`:
+  - mapped score number tone directly from final label (`Doing Well` -> green, `Still Developing` -> amber, `Requires Support` -> red)
+  - standardized legend row markup with fixed-size badge container and lighter copy text
+- Updated `components/report/ReportDocument.tsx`:
+  - aligned legend structure with result page
+  - kept grade-band page grouping and final-page footer placement for deterministic print output
+- Updated `app/globals.css`:
+  - refined legend typography/alignment and equal badge sizing
+  - reduced legend copy weight for lighter visual balance
+  - tuned print spacing tokens for score card, snapshot table, and detail skill sections
+  - added grade-band specific print tuning and footer print styling to reduce squeezed layout
+- Added regression test:
+  - `tests/report/score-hero.test.ts` to lock score-tone mapping behavior
+- Regenerated PDFs from current build and verified page targets remain stable:
+  - Primary: 5 pages (A4)
+  - Pre-primary: 4 pages (A4)
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run build`
+- `pdfinfo /tmp/primary_current.pdf | rg 'Pages|Page size'`
+- `pdfinfo /tmp/pre_current.pdf | rg 'Pages|Page size'`
+- `pdfinfo /tmp/primary_current2.pdf | rg 'Pages|Page size'`
+- `pdfinfo /tmp/pre_current2.pdf | rg 'Pages|Page size'`
+
+**Result**
+- Passed
+
+**Issues found**
+- Older downloaded PDFs can still reflect previous styling; regenerate from current app build to validate latest print tokens
+- Live DB query checks can fail intermittently if Neon connectivity is unavailable in the local session
+
+**Task list updates**
+- Added `tests/report/score-hero.test.ts` to relevant files in `tasks-learning-skills-checkup.md`
+- No checkbox changes
+
+**Next step**
+- Run one final visual acceptance check on newly generated PDF outputs, then execute production email send verification (`/api/report/send/[token]`) after `RESEND_API_KEY` is set
+
+### 2026-04-11 — Auto-email on submit + report spacing increase
+
+**Goal**
+- Ensure report email is actually sent during normal submit flow (not only manual force-resend), and increase report-detail spacing for readability
+
+**Work done**
+- Updated `app/api/submit/route.ts`:
+  - added automatic `sendReportEmail` call immediately after successful submission/report creation
+  - added report email status persistence on submit flow:
+    - `SENT` with provider message id + timestamp
+    - `FAILED` with error reason
+- Updated result status messaging:
+  - `app/result/[token]/page.tsx` now reads `report.emailStatus`
+  - `components/report/ScoreHero.tsx` now shows status-aware copy:
+    - sent / sending / failed
+- Increased detail spacing in `app/globals.css`:
+  - doubled spacing between report detail pages (onscreen stack)
+  - doubled spacing between skill cards
+  - doubled spacing between section blocks within each skill
+  - same doubling pattern applied in print styles
+- Updated API submit tests in `tests/api/submit.test.ts`:
+  - mocked email helper and report update persistence
+  - assertions updated for report status update calls
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run build`
+- `pdfinfo /tmp/primary_spacing2x.pdf | rg 'Pages|Page size'`
+- `pdfinfo /tmp/pre_spacing2x.pdf | rg 'Pages|Page size'`
+
+**Result**
+- Passed
+
+**Issues found**
+- With doubled spacing, primary PDF expanded to 6 pages (A4); pre-primary remains 4 pages (A4)
+- This is expected from larger vertical spacing and can be tuned later if strict 5-page primary parity is required again
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Run end-to-end local submit and verify immediate email arrival without using force-resend, then prepare production deployment
+
+### 2026-04-12 — Go-live polish pass (result links, internal UI, report header)
+
+**Goal**
+- Apply final soft-launch polish requested before go-live
+
+**Work done**
+- Updated result surface:
+  - removed `Download PDF (A4)` link from `components/report/ScoreHero.tsx`
+  - kept only `Open full report` link
+- Updated report header layout styling in `app/globals.css` + `components/report/ReportDocument.tsx`:
+  - larger Brainmoto logo in full report header
+  - right-aligned purple `Learning Skills Check-Up` title pill in full report
+  - increased top spacing above report header
+- Refined internal admin page UI in `app/internal/submissions/page.tsx`:
+  - replaced plain inline-styled table with branded dashboard styles
+  - added status chips, improved link/action layout, and cleaner success/error alerts
+  - retained existing resend functionality and access-key protection
+- Updated/kept tests consistent with result hero prop changes
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run build`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking code issues
+- Primary report pagination remains expanded versus original strict parity because spacing was intentionally increased
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Configure Vercel production env vars, run migration/seed in production DB, and perform soft-launch smoke test on live URL
+
+### 2026-04-12 — Mobile responsiveness polish before soft launch
+
+**Goal**
+- Improve mobile UX on result/full-report screens and keep checkup header logo aligned with title on mobile
+
+**Work done**
+- Updated mobile breakpoint rules in `app/globals.css`:
+  - kept checkup header title + logo on one row at mobile widths
+  - reduced and rebalanced typography scale for result/report surfaces (meta, score, legend, snapshot, detail sections)
+  - tightened card paddings/gaps for better readability on small screens
+  - retained right alignment for full-report title pill on mobile
+
+**Tests run**
+- `npm run test:unit`
+- `npm run test:api`
+- `npm run build`
+
+**Result**
+- Passed
+
+**Issues found**
+- No blocking issues
+
+**Task list updates**
+- No checkbox changes
+
+**Next step**
+- Set production env vars in Vercel and execute soft-launch QA script on live domain
+
 ---
 
 ## Pending Decisions Log
@@ -960,8 +1560,6 @@ Use this section only for unresolved decisions that can affect implementation.
 - [x] API submit tests working
 - [x] Report page working
 - [x] Email delivery working
-- [ ] PDF generation working
-- [ ] Retake logic working
+- [x] PDF generation working
+- [x] Retake logic working
 - [ ] Launch QA passed
-
-Note: PDF code/tests are complete; local live-success path needs valid Blob store provisioning.

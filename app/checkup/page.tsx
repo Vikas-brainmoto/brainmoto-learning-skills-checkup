@@ -5,12 +5,10 @@ export default async function CheckupPage() {
   const link = await resolveCheckupLink();
 
   return (
-    <main>
+    <main className="checkup-page-shell">
       <ChildDetailsForm
         source="d2c"
         allowedGrades={link.allowedGrades}
-        landingTitle={link.landingTitle}
-        landingDescription={link.landingDescription}
         logoUrl={link.logoUrl}
       />
     </main>

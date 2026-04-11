@@ -11,6 +11,8 @@ interface GenerateReportPdfInput {
 }
 
 const DEFAULT_TIMEOUT_MS = 25_000;
+const PDF_WINDOW_WIDTH = 1440;
+const PDF_WINDOW_HEIGHT = 2200;
 const DEFAULT_CHROME_PATHS = [
   process.env.REPORT_PDF_CHROME_PATH,
   "/usr/bin/google-chrome",
@@ -90,6 +92,9 @@ export async function generateReportPdf({
     "--disable-gpu",
     "--no-sandbox",
     "--disable-dev-shm-usage",
+    "--hide-scrollbars",
+    `--window-size=${PDF_WINDOW_WIDTH},${PDF_WINDOW_HEIGHT}`,
+    "--no-pdf-header-footer",
     "--print-to-pdf-no-header",
     `--print-to-pdf=${outputPath}`,
     reportUrl,
