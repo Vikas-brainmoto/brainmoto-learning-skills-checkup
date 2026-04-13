@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? "4010");
 const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL?.trim() || `http://localhost:${port}`;
+  process.env.PLAYWRIGHT_BASE_URL?.trim() || `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -32,7 +32,7 @@ export default defineConfig({
     ? undefined
     : {
         command: `npm run build && npm run start -- --port ${port}`,
-        url: `${baseURL}/checkup`,
+        url: `${baseURL}/`,
         timeout: 300_000,
         reuseExistingServer: !process.env.CI,
       },

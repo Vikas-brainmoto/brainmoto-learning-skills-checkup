@@ -42,7 +42,7 @@ test.describe("Check-Up end-to-end", () => {
     const suffix = uniqueSuffix();
     const housingSocietyName = `Skyline Residency ${suffix}`;
 
-    await page.goto("/checkup");
+    await page.goto("/");
     await expect(
       page.getByRole("heading", { name: /Learning Skills Check-Up/i }),
     ).toBeVisible();
@@ -77,7 +77,7 @@ test.describe("Check-Up end-to-end", () => {
     const suffix = uniqueSuffix();
     const division = "B";
 
-    await page.goto("/checkup/greenfield-primary-school");
+    await page.goto("/s/greenfield-primary-school");
     await expect(
       page.getByRole("heading", { name: /Learning Skills Check-Up/i }),
     ).toBeVisible();

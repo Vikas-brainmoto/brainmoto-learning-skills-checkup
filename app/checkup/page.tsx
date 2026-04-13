@@ -1,16 +1,5 @@
-import { ChildDetailsForm } from "../../components/checkup/ChildDetailsForm";
-import { resolveCheckupLink } from "../../lib/links/resolve-link";
+import { permanentRedirect } from "next/navigation";
 
 export default async function CheckupPage() {
-  const link = await resolveCheckupLink();
-
-  return (
-    <main className="checkup-page-shell">
-      <ChildDetailsForm
-        source="d2c"
-        allowedGrades={link.allowedGrades}
-        logoUrl={link.logoUrl}
-      />
-    </main>
-  );
+  permanentRedirect("/");
 }
