@@ -7,6 +7,8 @@ import {
   storeReportPdfInBlob,
 } from "../../../../../lib/report/pdf";
 
+export const runtime = "nodejs";
+
 interface RouteContext {
   params: Promise<{
     token: string;
