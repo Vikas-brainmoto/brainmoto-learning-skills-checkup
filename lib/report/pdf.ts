@@ -1,4 +1,6 @@
 import { access } from "node:fs/promises";
+import { join } from "node:path";
+import { readdirSync } from "node:fs";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { put } from "@vercel/blob";
@@ -11,6 +13,8 @@ interface GenerateReportPdfInput {
 const DEFAULT_TIMEOUT_MS = 25_000;
 const PDF_WINDOW_WIDTH = 1440;
 const PDF_WINDOW_HEIGHT = 2200;
+const CHROMIUM_PACKAGE_VERSION = "147.0.1";
+const DEFAULT_CHROMIUM_PACK_URL = `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_PACKAGE_VERSION}/chromium-v${CHROMIUM_PACKAGE_VERSION}-pack.tar`;
 const LOCAL_CHROME_ARGS = [
   "--headless=new",
   "--disable-gpu",
@@ -26,6 +30,44 @@ const DEFAULT_CHROME_PATHS = [
   "/usr/bin/chromium",
 ].filter((path): path is string => Boolean(path && path.trim()));
 
+function normalizeDirectoryPath(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+async function findChromiumPackageBinCandidates(): Promise<string[]> {
+  const candidates: string[] = [];
+  const fromEnv = normalizeDirectoryPath(process.env.REPORT_PDF_CHROMIUM_DIR);
+  if (fromEnv) {
+    candidates.push(fromEnv);
+  }
+
+  const nodeModulesDir = join(process.cwd(), "node_modules");
+  candidates.push(join(nodeModulesDir, "@sparticuz", "chromium", "bin"));
+
+  try {
+    const scopedDir = join(nodeModulesDir, "@sparticuz");
+    const entries = readdirSync(scopedDir, {
+      withFileTypes: true,
+    });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !entry.name.startsWith("chromium-")) {
+        continue;
+      }
+
+      candidates.push(join(scopedDir, entry.name, "bin"));
+    }
+  } catch {
+    // Ignore directory read errors.
+  }
+
+  return [...new Set(candidates)];
+}
+
 async function findLocalChromeExecutable(): Promise<string | null> {
   for (const candidate of DEFAULT_CHROME_PATHS) {
     try {
@@ -39,19 +81,58 @@ async function findLocalChromeExecutable(): Promise<string | null> {
   return null;
 }
 
+async function resolveChromiumPackUrl(): Promise<string | null> {
+  const fromEnv = normalizeDirectoryPath(process.env.REPORT_PDF_CHROMIUM_PACK_URL);
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  return DEFAULT_CHROMIUM_PACK_URL;
+}
+
 async function resolveChromeExecutablePath(): Promise<string> {
   const localExecutablePath = await findLocalChromeExecutable();
   if (localExecutablePath) {
     return localExecutablePath;
   }
 
-  const bundledExecutablePath = await chromium.executablePath();
-  if (bundledExecutablePath && bundledExecutablePath.trim() !== "") {
-    return bundledExecutablePath;
+  const chromiumBinCandidates = await findChromiumPackageBinCandidates();
+  for (const binPath of chromiumBinCandidates) {
+    try {
+      await access(binPath);
+      const executableFromBin = await chromium.executablePath(binPath);
+      if (executableFromBin && executableFromBin.trim() !== "") {
+        return executableFromBin;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  try {
+    const bundledExecutablePath = await chromium.executablePath();
+    if (bundledExecutablePath && bundledExecutablePath.trim() !== "") {
+      return bundledExecutablePath;
+    }
+  } catch {
+    // Fall through to remote pack fallback below.
+  }
+
+  const chromiumPackUrl = await resolveChromiumPackUrl();
+  if (chromiumPackUrl) {
+    try {
+      const executableFromRemotePack =
+        await chromium.executablePath(chromiumPackUrl);
+      if (executableFromRemotePack && executableFromRemotePack.trim() !== "") {
+        return executableFromRemotePack;
+      }
+    } catch {
+      // Preserve final generic error below.
+    }
   }
 
   throw new Error(
-    "Chrome executable not found. Set REPORT_PDF_CHROME_PATH or install Google Chrome/Chromium. On Vercel, ensure @sparticuz/chromium is bundled.",
+    "Chrome executable not found. Set REPORT_PDF_CHROME_PATH, REPORT_PDF_CHROMIUM_DIR, or REPORT_PDF_CHROMIUM_PACK_URL.",
   );
 }
 
