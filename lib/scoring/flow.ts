@@ -2,7 +2,7 @@ import { preprimaryConfig } from "./config/preprimary";
 import { primaryConfig } from "./config/primary";
 import type { ScoringConfig } from "./types";
 
-export const PREPRIMARY_GRADES = ["Nursery", "Jr KG", "Sr KG", "UKG"] as const;
+export const PREPRIMARY_GRADES = ["Nursery", "Jr KG", "Sr KG"] as const;
 export const PRIMARY_GRADES = [
   "Grade 1",
   "Grade 2",

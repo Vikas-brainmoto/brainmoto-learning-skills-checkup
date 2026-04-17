@@ -1,0 +1,4 @@
+school_name,slug,link_slug,logo_url,primary_color_hex,is_active,grade_band,allowed_grades,landing_title,landing_description
+Sunrise Kids Academy,sunrise-kids-academy,,/logo.webp,#0F766E,true,preprimary,,,
+Greenfield Primary School,greenfield-primary-school,,/logo.webp,#1D4ED8,true,primary,,,
+Modern Highschool,modern-highschool,modern-highschool,/logo.webp,#4D3E8A,true,all,Grade 1|Grade 2|Grade 3|Grade 4|Grade 5,Modern Highschool x Brainmoto Check-Up,School-branded check-up link for Modern Highschool parents.

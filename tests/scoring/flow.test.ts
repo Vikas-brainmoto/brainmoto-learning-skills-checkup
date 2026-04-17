@@ -6,7 +6,7 @@ describe("grade-driven flow branching", () => {
   it("maps pre-primary grades to preprimary flow", () => {
     expect(resolveFlowFromGrade("Nursery")).toBe("preprimary");
     expect(resolveFlowFromGrade("Jr KG")).toBe("preprimary");
-    expect(resolveFlowFromGrade("UKG")).toBe("preprimary");
+    expect(resolveFlowFromGrade("Sr KG")).toBe("preprimary");
   });
 
   it("maps primary grades to primary flow", () => {
