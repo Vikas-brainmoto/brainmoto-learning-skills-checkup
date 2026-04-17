@@ -1,8 +1,6 @@
-import { randomUUID } from "node:crypto";
-import { access, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { access } from "node:fs/promises";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 import { put } from "@vercel/blob";
 
 interface GenerateReportPdfInput {
@@ -13,6 +11,14 @@ interface GenerateReportPdfInput {
 const DEFAULT_TIMEOUT_MS = 25_000;
 const PDF_WINDOW_WIDTH = 1440;
 const PDF_WINDOW_HEIGHT = 2200;
+const LOCAL_CHROME_ARGS = [
+  "--headless=new",
+  "--disable-gpu",
+  "--no-sandbox",
+  "--disable-dev-shm-usage",
+  "--hide-scrollbars",
+  `--window-size=${PDF_WINDOW_WIDTH},${PDF_WINDOW_HEIGHT}`,
+];
 const DEFAULT_CHROME_PATHS = [
   process.env.REPORT_PDF_CHROME_PATH,
   "/usr/bin/google-chrome",
@@ -20,7 +26,7 @@ const DEFAULT_CHROME_PATHS = [
   "/usr/bin/chromium",
 ].filter((path): path is string => Boolean(path && path.trim()));
 
-async function findChromeExecutable(): Promise<string> {
+async function findLocalChromeExecutable(): Promise<string | null> {
   for (const candidate of DEFAULT_CHROME_PATHS) {
     try {
       await access(candidate);
@@ -30,50 +36,23 @@ async function findChromeExecutable(): Promise<string> {
     }
   }
 
-  throw new Error(
-    "Chrome executable not found. Set REPORT_PDF_CHROME_PATH or install Google Chrome/Chromium.",
-  );
+  return null;
 }
 
-function runCommand(
-  command: string,
-  args: string[],
-  timeoutMs: number,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+async function resolveChromeExecutablePath(): Promise<string> {
+  const localExecutablePath = await findLocalChromeExecutable();
+  if (localExecutablePath) {
+    return localExecutablePath;
+  }
 
-    let stderr = "";
-    child.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-    });
+  const bundledExecutablePath = await chromium.executablePath();
+  if (bundledExecutablePath && bundledExecutablePath.trim() !== "") {
+    return bundledExecutablePath;
+  }
 
-    const timeout = setTimeout(() => {
-      child.kill("SIGKILL");
-      reject(new Error(`PDF generation timed out after ${timeoutMs}ms.`));
-    }, timeoutMs);
-
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      reject(error);
-    });
-
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (code === 0) {
-        resolve();
-        return;
-      }
-
-      reject(
-        new Error(
-          `Chrome PDF command failed with exit code ${code}. ${stderr.trim()}`.trim(),
-        ),
-      );
-    });
-  });
+  throw new Error(
+    "Chrome executable not found. Set REPORT_PDF_CHROME_PATH or install Google Chrome/Chromium. On Vercel, ensure @sparticuz/chromium is bundled.",
+  );
 }
 
 export async function generateReportPdf({
@@ -84,27 +63,43 @@ export async function generateReportPdf({
     throw new Error("Report URL is required for PDF generation.");
   }
 
-  const chromePath = await findChromeExecutable();
-  const outputPath = join(tmpdir(), `brainmoto-report-${randomUUID()}.pdf`);
+  const chromePath = await resolveChromeExecutablePath();
+  const localExecutablePath = await findLocalChromeExecutable();
+  const launchArgs = localExecutablePath
+    ? LOCAL_CHROME_ARGS
+    : [...chromium.args, `--window-size=${PDF_WINDOW_WIDTH},${PDF_WINDOW_HEIGHT}`];
 
-  const args = [
-    "--headless=new",
-    "--disable-gpu",
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    "--hide-scrollbars",
-    `--window-size=${PDF_WINDOW_WIDTH},${PDF_WINDOW_HEIGHT}`,
-    "--no-pdf-header-footer",
-    "--print-to-pdf-no-header",
-    `--print-to-pdf=${outputPath}`,
-    reportUrl,
-  ];
-
+  const browser = await puppeteer.launch({
+    executablePath: chromePath,
+    args: launchArgs,
+    headless: true,
+    defaultViewport: {
+      width: PDF_WINDOW_WIDTH,
+      height: PDF_WINDOW_HEIGHT,
+    },
+  });
   try {
-    await runCommand(chromePath, args, timeoutMs);
-    return await readFile(outputPath);
+    const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(timeoutMs);
+    page.setDefaultTimeout(timeoutMs);
+
+    await page.goto(reportUrl, {
+      waitUntil: "networkidle0",
+      timeout: timeoutMs,
+    });
+    await page.emulateMediaType("screen");
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+
+    const pdfBytes = await page.pdf({
+      printBackground: true,
+      preferCSSPageSize: true,
+    });
+
+    return Buffer.from(pdfBytes);
   } finally {
-    await rm(outputPath, { force: true });
+    await browser.close();
   }
 }
 

@@ -398,12 +398,14 @@ export async function POST(request: Request) {
     });
 
     const reportUrl = `${getAppBaseUrl()}/report/${reportToken}`;
+    const downloadReportUrl = `${getAppBaseUrl()}/api/report/pdf/${reportToken}`;
     try {
       const emailResult = await sendReportEmail({
         toEmail: normalizedParentEmail,
         parentName: normalizedParentName,
         childName: normalizedChildName,
         reportUrl,
+        downloadReportUrl,
       });
 
       if (emailResult.ok) {
