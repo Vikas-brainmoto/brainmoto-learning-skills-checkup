@@ -12,6 +12,7 @@ interface ScoreHeroProps {
   finalLevel: FinalLevelLabel;
   parentEmail: string;
   reportPath?: string | null;
+  reportDownloadPath?: string | null;
   emailStatus?: "PENDING" | "SENT" | "FAILED" | null;
 }
 
@@ -62,6 +63,7 @@ export function ScoreHero({
   finalLevel,
   parentEmail,
   reportPath,
+  reportDownloadPath,
   emailStatus = null,
 }: ScoreHeroProps) {
   const statusClassName = getStatusColorClass(finalLevel);
@@ -69,7 +71,7 @@ export function ScoreHero({
 
   return (
     <section className="ls-overview-block" aria-label="Score hero">
-      <header className="ls-brand-header">
+      <header className="ls-brand-header ls-brand-header-report ls-brand-header-result">
         <img src={logoUrl} alt="Brainmoto logo" className="ls-brand-logo" />
         <h1 className="ls-title-pill">Learning Skills Check-Up</h1>
       </header>
@@ -87,6 +89,11 @@ export function ScoreHero({
         <p className="ls-meta-cell">
           <strong>Division:</strong> {displayValue(division)}
         </p>
+        {source === "d2c" ? (
+          <p className="ls-meta-cell ls-meta-cell-wide">
+            <strong>Housing Society:</strong> {displayValue(housingSocietyName)}
+          </p>
+        ) : null}
       </section>
 
       <section className="ls-score-card">
@@ -136,15 +143,24 @@ export function ScoreHero({
             </>
           )}
         </p>
-        {source === "d2c" ? (
-          <p>
-            <strong>Housing Society:</strong> {displayValue(housingSocietyName)}
-          </p>
-        ) : null}
-        {reportPath ? (
-          <p>
-            <a href={reportPath}>Open full report</a>
-          </p>
+        {reportPath || reportDownloadPath ? (
+          <div className="ls-link-actions">
+            {reportPath ? (
+              <a className="ls-link-btn" href={reportPath}>
+                Open Full Report
+              </a>
+            ) : null}
+            {reportDownloadPath ? (
+              <a
+                className="ls-link-btn"
+                href={reportDownloadPath}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download Full Report
+              </a>
+            ) : null}
+          </div>
         ) : null}
       </section>
     </section>
