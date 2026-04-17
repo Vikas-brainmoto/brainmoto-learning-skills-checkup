@@ -34,7 +34,7 @@ describe("buildReportData", () => {
         resultToken: "result-token-1",
         sourceType: LinkSourceType.SCHOOL,
         childName: "Anshul Sharma",
-        grade: "UKG",
+        grade: "Sr KG",
         gradeBand: GradeBand.PREPRIMARY,
         schoolNameAtSubmission: "Sunbeam Suncity School",
         divisionAtSubmission: "C",

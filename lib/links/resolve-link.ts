@@ -20,7 +20,11 @@ function parseAllowedGrades(value: unknown): string[] {
     return [...ALL_GRADES];
   }
 
-  const grades = value.filter((grade): grade is string => typeof grade === "string");
+  const gradeSet = new Set<string>(ALL_GRADES);
+  const grades = value.filter(
+    (grade): grade is string =>
+      typeof grade === "string" && gradeSet.has(grade),
+  );
   return grades.length > 0 ? grades : [...ALL_GRADES];
 }
 

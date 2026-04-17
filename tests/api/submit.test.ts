@@ -110,7 +110,6 @@ describe("POST /api/submit", () => {
             "Nursery",
             "Jr KG",
             "Sr KG",
-            "UKG",
             "Grade 1",
             "Grade 2",
             "Grade 3",

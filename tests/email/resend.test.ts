@@ -18,7 +18,7 @@ describe("sendReportEmail", () => {
   });
 
   it("returns message id on successful resend API call", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ id: "re_msg_123" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -30,12 +30,25 @@ describe("sendReportEmail", () => {
       parentName: "Parent One",
       childName: "Child One",
       reportUrl: "https://example.com/report/abc",
+      downloadReportUrl: "https://example.com/api/report/pdf/abc",
     });
 
     expect(result).toEqual({
       ok: true,
       providerMessageId: "re_msg_123",
     });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, requestInit] = fetchSpy.mock.calls[0];
+    expect(url).toBe("https://api.resend.com/emails");
+    const payload = JSON.parse(String(requestInit?.body)) as {
+      html?: string;
+      text?: string;
+    };
+    expect(payload.html).toContain("Download Full Report (PDF)");
+    expect(payload.html).toContain("https://example.com/api/report/pdf/abc");
+    expect(payload.text).toContain(
+      "Download full report (PDF): https://example.com/api/report/pdf/abc",
+    );
   });
 
   it("returns provider error message on failed resend API call", async () => {

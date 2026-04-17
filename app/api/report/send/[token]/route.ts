@@ -70,6 +70,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const reportUrl = `${getAppBaseUrl()}${report.reportUrlPath}`;
+  const downloadReportUrl = `${getAppBaseUrl()}/api/report/pdf/${report.reportToken}`;
   const shouldIncrementResendCount = report.emailStatus !== ReportEmailStatus.PENDING;
 
   let sendResult;
@@ -79,6 +80,7 @@ export async function POST(request: Request, context: RouteContext) {
       parentName: report.submission.parentName,
       childName: report.submission.childName,
       reportUrl,
+      downloadReportUrl,
     });
   } catch (error) {
     const message =
@@ -130,6 +132,7 @@ export async function POST(request: Request, context: RouteContext) {
     {
       message: "Report email sent successfully.",
       reportUrl,
+      downloadReportUrl,
       providerMessageId: sendResult.providerMessageId ?? null,
     },
     { status: 200 },

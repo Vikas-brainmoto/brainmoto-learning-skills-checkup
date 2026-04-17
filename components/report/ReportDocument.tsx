@@ -159,11 +159,6 @@ export function ReportDocument({ report }: ReportDocumentProps) {
             key={`detail-page-${group.startIndex}`}
             className={`ls-detail-page ls-detail-page-${report.gradeBand} ${pageIndex === 0 ? "ls-detail-page-first" : ""}`}
           >
-            <header className="ls-brand-header ls-brand-header-report ls-details-brand">
-              <img src={report.logoUrl} alt="Brainmoto logo" className="ls-brand-logo" />
-              <h1 className="ls-title-pill">Learning Skills Check-Up</h1>
-            </header>
-
             {report.gradeBand === "primary" && pageIndex === 0 ? (
               <div className="ls-detail-intro-primary">
                 <h2>{report.detailHeading}</h2>
@@ -173,7 +168,7 @@ export function ReportDocument({ report }: ReportDocumentProps) {
               </div>
             ) : null}
 
-            {report.gradeBand === "preprimary" ? (
+            {report.gradeBand === "preprimary" && pageIndex === 0 ? (
               <div className="ls-detail-intro-preprimary">
                 <h2>{report.detailHeading}</h2>
               </div>
@@ -226,10 +221,40 @@ export function ReportDocument({ report }: ReportDocumentProps) {
 
             {pageIndex === skillGroups.length - 1 ? (
               <footer className="report-section report-footer ls-report-footer">
-                <a href="https://brainmoto.in" target="_blank" rel="noreferrer">
+                <a
+                  className="ls-report-footer-cta"
+                  href="https://brainmoto.in"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Click here to understand this report better
                 </a>
-                <p>info@brainmoto.in | www.brainmoto.in | +91 99600 95665 | brainmoto_</p>
+                <p className="ls-report-footer-links">
+                  <span className="ls-report-footer-item">
+                    <span aria-hidden="true" className="ls-footer-icon">
+                      🌐
+                    </span>
+                    www.brainmoto.in
+                  </span>
+                  <span className="ls-report-footer-item">
+                    <span aria-hidden="true" className="ls-footer-icon">
+                      ✉
+                    </span>
+                    info@brainmoto.in
+                  </span>
+                  <span className="ls-report-footer-item">
+                    <span aria-hidden="true" className="ls-footer-icon">
+                      ☎
+                    </span>
+                    +91 99600 95665
+                  </span>
+                  <span className="ls-report-footer-item">
+                    <span aria-hidden="true" className="ls-footer-icon">
+                      📷
+                    </span>
+                    brainmoto_
+                  </span>
+                </p>
               </footer>
             ) : null}
           </section>

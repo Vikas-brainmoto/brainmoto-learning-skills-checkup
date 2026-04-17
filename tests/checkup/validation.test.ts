@@ -26,12 +26,12 @@ describe("checkup validation", () => {
         parentEmail: "parent@example.com",
         parentWhatsapp: "",
         childName: "Child One",
-        grade: "UKG",
+        grade: "Sr KG",
         schoolName: "Sunrise Kids Academy",
         division: "A",
         housingSocietyName: "",
       },
-      ["Nursery", "Jr KG", "Sr KG", "UKG"],
+      ["Nursery", "Jr KG", "Sr KG"],
     );
 
     expect(result.isValid).toBe(true);
@@ -99,7 +99,7 @@ describe("checkup validation", () => {
         division: "A",
         housingSocietyName: "",
       },
-      ["Nursery", "Jr KG", "Sr KG", "UKG"],
+      ["Nursery", "Jr KG", "Sr KG"],
     );
 
     expect(result.isValid).toBe(false);
@@ -124,7 +124,7 @@ describe("checkup validation", () => {
     const answers = buildAnswers(preprimaryConfig, "Never");
     delete answers.pre_q20;
 
-    const result = validateAnswersForGrade("UKG", answers);
+    const result = validateAnswersForGrade("Sr KG", answers);
     expect(result.isValid).toBe(false);
     expect(result.errors).toContain('Missing answer for question "pre_q20".');
   });

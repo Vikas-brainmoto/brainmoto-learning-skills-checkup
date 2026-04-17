@@ -51,6 +51,7 @@ describe("POST /api/report/send/[token]", () => {
   it("sends email and marks report as SENT on success", async () => {
     prismaMocks.reportFindUnique.mockResolvedValue({
       id: "report_1",
+      reportToken: "report-token-1",
       reportUrlPath: "/report/report-token-1",
       emailStatus: ReportEmailStatus.PENDING,
       submission: {
@@ -71,12 +72,14 @@ describe("POST /api/report/send/[token]", () => {
       message?: string;
       providerMessageId?: string;
       reportUrl?: string;
+      downloadReportUrl?: string;
     };
 
     expect(response.status).toBe(200);
     expect(body.message).toBe("Report email sent successfully.");
     expect(body.providerMessageId).toBe("re_msg_123");
     expect(body.reportUrl).toBe("http://localhost:3000/report/report-token-1");
+    expect(body.downloadReportUrl).toBe("http://localhost:3000/api/report/pdf/report-token-1");
     expect(prismaMocks.reportUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "report_1" },
@@ -93,6 +96,7 @@ describe("POST /api/report/send/[token]", () => {
   it("marks report as FAILED when provider returns failure", async () => {
     prismaMocks.reportFindUnique.mockResolvedValue({
       id: "report_2",
+      reportToken: "report-token-2",
       reportUrlPath: "/report/report-token-2",
       emailStatus: ReportEmailStatus.PENDING,
       submission: {
@@ -128,6 +132,7 @@ describe("POST /api/report/send/[token]", () => {
   it("marks report as FAILED when helper throws an unexpected error", async () => {
     prismaMocks.reportFindUnique.mockResolvedValue({
       id: "report_3",
+      reportToken: "report-token-3",
       reportUrlPath: "/report/report-token-3",
       emailStatus: ReportEmailStatus.PENDING,
       submission: {
@@ -160,6 +165,7 @@ describe("POST /api/report/send/[token]", () => {
   it("blocks duplicate send when report is already SENT and no forceResend is provided", async () => {
     prismaMocks.reportFindUnique.mockResolvedValue({
       id: "report_4",
+      reportToken: "report-token-4",
       reportUrlPath: "/report/report-token-4",
       emailStatus: ReportEmailStatus.SENT,
       submission: {
@@ -183,6 +189,7 @@ describe("POST /api/report/send/[token]", () => {
   it("allows force resend and increments resendCount when report is already SENT", async () => {
     prismaMocks.reportFindUnique.mockResolvedValue({
       id: "report_5",
+      reportToken: "report-token-5",
       reportUrlPath: "/report/report-token-5",
       emailStatus: ReportEmailStatus.SENT,
       submission: {

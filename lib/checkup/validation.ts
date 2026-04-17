@@ -1,4 +1,8 @@
-import { ANSWER_OPTION_LABELS, type AnswerOptionLabel } from "../scoring/types";
+import {
+  ANSWER_OPTION_LABELS,
+  type AnswerOptionLabel,
+  type ScoringConfig,
+} from "../scoring/types";
 import { getQuestionConfigForGrade } from "../scoring/flow";
 
 export interface ChildDetailsValues {
@@ -100,6 +104,15 @@ export function validateAnswersForGrade(
       errors: [error instanceof Error ? error.message : "Unsupported grade."],
     };
   }
+
+  return validateAnswersAgainstConfig(config, answers);
+}
+
+export function validateAnswersAgainstConfig(
+  config: ScoringConfig,
+  answers: Record<string, string>,
+): ValidationResult {
+  const errors: string[] = [];
 
   for (const question of config.questions) {
     const answer = answers[question.id];

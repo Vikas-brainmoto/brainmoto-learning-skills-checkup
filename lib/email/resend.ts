@@ -3,6 +3,7 @@ interface SendReportEmailInput {
   parentName: string;
   childName: string;
   reportUrl: string;
+  downloadReportUrl?: string;
 }
 
 export interface SendReportEmailResult {
@@ -33,6 +34,24 @@ function buildEmailBody(input: SendReportEmailInput): { subject: string; html: s
   const safeParentName = escapeHtml(input.parentName);
   const safeChildName = escapeHtml(input.childName);
   const safeReportUrl = escapeHtml(input.reportUrl);
+  const safeDownloadReportUrl = input.downloadReportUrl
+    ? escapeHtml(input.downloadReportUrl)
+    : null;
+  const downloadSectionHtml = safeDownloadReportUrl
+    ? `
+        <p>
+          <a href="${safeDownloadReportUrl}" target="_blank" rel="noreferrer">Download Full Report (PDF)</a>
+        </p>
+        <p>If download does not start, copy and paste this URL into your browser:</p>
+        <p>${safeDownloadReportUrl}</p>
+      `
+    : "";
+  const downloadSectionText = input.downloadReportUrl
+    ? [
+        "",
+        `Download full report (PDF): ${input.downloadReportUrl}`,
+      ]
+    : [];
 
   return {
     subject: `${input.childName} - Brainmoto Learning Skills Check-Up Report`,
@@ -48,6 +67,7 @@ function buildEmailBody(input: SendReportEmailInput): { subject: string; html: s
         </p>
         <p>If the button/link does not work, copy and paste this URL into your browser:</p>
         <p>${safeReportUrl}</p>
+        ${downloadSectionHtml}
         <p>Regards,<br/>Brainmoto Team</p>
       </div>
     `,
@@ -57,6 +77,7 @@ function buildEmailBody(input: SendReportEmailInput): { subject: string; html: s
       `Your detailed Brainmoto Learning Skills Check-Up report for ${input.childName} is ready.`,
       "",
       `Open report: ${input.reportUrl}`,
+      ...downloadSectionText,
       "",
       "Regards,",
       "Brainmoto Team",

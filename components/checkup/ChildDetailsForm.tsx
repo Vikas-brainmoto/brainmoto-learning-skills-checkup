@@ -4,11 +4,10 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import {
-  validateAnswersForGrade,
+  validateAnswersAgainstConfig,
   validateChildDetails,
   type ChildDetailsValues,
 } from "../../lib/checkup/validation";
-import { getQuestionConfigForGrade } from "../../lib/scoring/flow";
 import type { AnswerOptionLabel, ScoringConfig, SubmittedAnswers } from "../../lib/scoring/types";
 import { ProgressBar } from "./ProgressBar";
 import { QuestionCard } from "./QuestionCard";
@@ -107,7 +106,7 @@ export function ChildDetailsForm({
     setDetailErrors((current) => ({ ...current, [field]: undefined }));
   }
 
-  function handleDetailsSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleDetailsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validation = validateChildDetails(values, allowedGrades);
@@ -116,11 +115,34 @@ export function ChildDetailsForm({
       return;
     }
 
-    const config = getQuestionConfigForGrade(values.grade);
-    setQuestionConfig(config);
-    setCurrentQuestionIndex(0);
-    setQuestionErrors([]);
-    setIsQuestionStepComplete(false);
+    try {
+      const response = await fetch(
+        `/api/checkup/config?grade=${encodeURIComponent(values.grade)}`,
+      );
+      const payload = (await response.json()) as {
+        message?: string;
+        questionConfig?: ScoringConfig;
+      };
+
+      if (!response.ok || !payload.questionConfig) {
+        setDetailErrors((current) => ({
+          ...current,
+          grade: payload.message ?? "Unable to load questions for selected grade.",
+        }));
+        return;
+      }
+
+      setQuestionConfig(payload.questionConfig);
+      setCurrentQuestionIndex(0);
+      setQuestionErrors([]);
+      setIsQuestionStepComplete(false);
+      setSubmitErrors([]);
+    } catch {
+      setDetailErrors((current) => ({
+        ...current,
+        grade: "Unable to load questions due to a network or server issue.",
+      }));
+    }
   }
 
   function handleAnswerChange(answer: AnswerOptionLabel) {
@@ -142,7 +164,7 @@ export function ChildDetailsForm({
       return;
     }
 
-    const validation = validateAnswersForGrade(values.grade, answers);
+    const validation = validateAnswersAgainstConfig(questionConfig, answers);
     if (!validation.isValid) {
       setQuestionErrors(validation.errors);
       setIsQuestionStepComplete(false);
@@ -159,7 +181,7 @@ export function ChildDetailsForm({
       return;
     }
 
-    const answerValidation = validateAnswersForGrade(values.grade, answers);
+    const answerValidation = validateAnswersAgainstConfig(questionConfig, answers);
     if (!answerValidation.isValid) {
       setQuestionErrors(answerValidation.errors);
       setIsQuestionStepComplete(false);
@@ -399,7 +421,7 @@ export function ChildDetailsForm({
               )}
             </div>
 
-            <div className="checkup-actions">
+            <div className="checkup-actions checkup-actions-primary">
               <button type="submit" className="checkup-btn checkup-btn-primary">
                 Continue To Questions
               </button>

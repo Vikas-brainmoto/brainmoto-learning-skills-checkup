@@ -10,14 +10,17 @@ import {
 } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { validateSubmissionPayload } from "../../../lib/checkup/validation";
+import {
+  validateAnswersAgainstConfig,
+  validateChildDetails,
+} from "../../../lib/checkup/validation";
 import { evaluateRetakeEligibility } from "../../../lib/checkup/retake";
+import { getPublishedQuestionSetContentForGrade } from "../../../lib/content/question-set-store";
 import { prisma } from "../../../lib/db/prisma";
 import { sendReportEmail } from "../../../lib/email/resend";
 import { calculateCheckupScores } from "../../../lib/scoring/engine";
 import {
   ALL_GRADES,
-  getQuestionConfigForGrade,
   resolveFlowFromGrade,
 } from "../../../lib/scoring/flow";
 import type { SubmittedAnswers } from "../../../lib/scoring/types";
@@ -45,7 +48,11 @@ function parseAllowedGrades(value: unknown): string[] {
     return [...ALL_GRADES];
   }
 
-  const grades = value.filter((grade): grade is string => typeof grade === "string");
+  const gradeSet = new Set<string>(ALL_GRADES);
+  const grades = value.filter(
+    (grade): grade is string =>
+      typeof grade === "string" && gradeSet.has(grade),
+  );
   return grades.length > 0 ? grades : [...ALL_GRADES];
 }
 
@@ -192,10 +199,9 @@ export async function POST(request: Request) {
   const normalizedDivision = (typedPayload.division ?? "").trim();
   const normalizedHousingSocietyName = (typedPayload.housingSocietyName ?? "").trim();
 
-  const validation = validateSubmissionPayload(
+  const detailValidation = validateChildDetails(
     {
       source: typedPayload.source,
-      schoolSlug: typedPayload.schoolSlug,
       parentName: typedPayload.parentName ?? "",
       parentEmail: typedPayload.parentEmail ?? "",
       parentWhatsapp: typedPayload.parentWhatsapp ?? "",
@@ -204,23 +210,56 @@ export async function POST(request: Request) {
       schoolName: typedPayload.schoolName ?? "",
       division: typedPayload.division ?? "",
       housingSocietyName: typedPayload.housingSocietyName ?? "",
-      answers,
     },
     allowedGrades,
   );
 
-  if (!validation.isValid) {
+  const sourceErrors: string[] = [];
+  if (typedPayload.source === "school" && (!typedPayload.schoolSlug || typedPayload.schoolSlug.trim() === "")) {
+    sourceErrors.push("School slug is required for school flow.");
+  }
+
+  if (!detailValidation.isValid || sourceErrors.length > 0) {
     return NextResponse.json(
       {
         message: "Submission validation failed.",
-        errors: validation.errors,
+        errors: [...detailValidation.errors, ...sourceErrors],
       },
       { status: 400 },
     );
   }
 
-  const flow = resolveFlowFromGrade(grade);
-  if (!flow) {
+  let publishedContent;
+  try {
+    publishedContent = await getPublishedQuestionSetContentForGrade(grade);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : `Unsupported grade "${grade}" for submission.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const answerValidation = validateAnswersAgainstConfig(
+    publishedContent.questionConfig,
+    answers,
+  );
+  if (!answerValidation.isValid) {
+    return NextResponse.json(
+      {
+        message: "Submission validation failed.",
+        errors: answerValidation.errors,
+      },
+      { status: 400 },
+    );
+  }
+
+  const flow = publishedContent.flow;
+  if (!resolveFlowFromGrade(grade)) {
     return NextResponse.json(
       { message: `Unsupported grade "${grade}" for submission.` },
       { status: 400 },
@@ -303,7 +342,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const scoreConfig = getQuestionConfigForGrade(grade);
+  const scoreConfig = publishedContent.questionConfig;
   const scoreResult = calculateCheckupScores(
     scoreConfig,
     answers as SubmittedAnswers,
@@ -359,12 +398,14 @@ export async function POST(request: Request) {
     });
 
     const reportUrl = `${getAppBaseUrl()}/report/${reportToken}`;
+    const downloadReportUrl = `${getAppBaseUrl()}/api/report/pdf/${reportToken}`;
     try {
       const emailResult = await sendReportEmail({
         toEmail: normalizedParentEmail,
         parentName: normalizedParentName,
         childName: normalizedChildName,
         reportUrl,
+        downloadReportUrl,
       });
 
       if (emailResult.ok) {

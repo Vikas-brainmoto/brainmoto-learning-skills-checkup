@@ -5,11 +5,10 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import { getPublishedQuestionSetContentForFlow } from "../content/question-set-store";
 import { prisma } from "../db/prisma";
 import { SKILL_DEFINITIONS, type FinalLevelLabel } from "../scoring/types";
 import {
-  PREPRIMARY_FLOW_CONTENT,
-  PRIMARY_FLOW_CONTENT,
   type FlowNarrativeContent,
   type ReportNarrativeSection,
 } from "./content";
@@ -105,10 +104,6 @@ function mapEaseStatusLabel(level: FinalLevelLabel): "Green" | "Amber" | "Red" {
   }
 }
 
-function getFlowNarrativeContent(flow: "preprimary" | "primary"): FlowNarrativeContent {
-  return flow === "preprimary" ? PREPRIMARY_FLOW_CONTENT : PRIMARY_FLOW_CONTENT;
-}
-
 function parseSkillScores(value: Prisma.JsonValue): ParsedSkillScore[] {
   if (!Array.isArray(value)) {
     return [];
@@ -168,7 +163,8 @@ export async function buildReportData(reportToken: string): Promise<ReportData |
 
   const submission = report.submission;
   const flow = mapGradeBand(submission.gradeBand);
-  const narrativeContent = getFlowNarrativeContent(flow);
+  const publishedContent = await getPublishedQuestionSetContentForFlow(flow);
+  const narrativeContent: FlowNarrativeContent = publishedContent.reportContent;
   const parsedSkillScores = parseSkillScores(submission.skillScores);
   const parsedSkillScoreMap = new Map(
     parsedSkillScores.map((skillScore) => [skillScore.skillId, skillScore]),

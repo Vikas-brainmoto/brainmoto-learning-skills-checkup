@@ -149,6 +149,9 @@ export default async function ResultPage({ params }: ResultPageProps) {
   const reportPath = submission.report
     ? `/report/${submission.report.reportToken}`
     : null;
+  const reportDownloadPath = submission.report
+    ? `/api/report/pdf/${submission.report.reportToken}`
+    : null;
   const emailStatus: ReportEmailStatus | null = submission.report?.emailStatus ?? null;
 
   return (
@@ -165,6 +168,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
         finalLevel={finalLevel}
         parentEmail={submission.parentEmail}
         reportPath={reportPath}
+        reportDownloadPath={reportDownloadPath}
         emailStatus={emailStatus}
       />
       <SkillSnapshot skills={orderedSkillScores} />
