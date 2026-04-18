@@ -19,11 +19,11 @@ function scoreStatusColor(level: "Green" | "Amber" | "Red"): string {
     case "Green":
       return "#15803d";
     case "Amber":
-      return "#d97706";
+      return "#f5ba33";
     case "Red":
       return "#dc2626";
     default:
-      return "#d97706";
+      return "#f5ba33";
   }
 }
 
@@ -170,54 +170,57 @@ export function ReportDocument({ report }: ReportDocumentProps) {
 
             {report.gradeBand === "preprimary" && pageIndex === 0 ? (
               <div className="ls-detail-intro-preprimary">
-                <h2>{report.detailHeading}</h2>
+                <h2>Learning Skills Detailed Explanation</h2>
+                <p>{report.detailHeading}</p>
               </div>
             ) : null}
 
-            {group.items.map((skill, groupSkillIndex) => {
-              const skillNumber = group.startIndex + groupSkillIndex + 1;
+            <div className="ls-detail-skill-list">
+              {group.items.map((skill, groupSkillIndex) => {
+                const skillNumber = group.startIndex + groupSkillIndex + 1;
 
-              return (
-                <section key={skill.skillId} className="ls-detail-skill">
-                  <h3 className="ls-detail-skill-title">
-                    {skillNumber}) {skill.detailTitle}
-                  </h3>
-                  <div className="ls-detail-skill-body">
-                    {skill.sections.map((section) => (
-                      <div key={`${skill.skillId}-${section.heading}`} className="ls-detail-section">
-                        {report.gradeBand === "preprimary" ? (
-                          section.body ? (
-                            <p>
-                              <strong>{section.heading}</strong>
-                              {": "}
-                              {section.body}
-                            </p>
+                return (
+                  <section key={skill.skillId} className="ls-detail-skill">
+                    <h3 className="ls-detail-skill-title">
+                      {skillNumber}) {skill.detailTitle}
+                    </h3>
+                    <div className="ls-detail-skill-body">
+                      {skill.sections.map((section) => (
+                        <div key={`${skill.skillId}-${section.heading}`} className="ls-detail-section">
+                          {report.gradeBand === "preprimary" ? (
+                            section.body ? (
+                              <p>
+                                <strong>{section.heading}</strong>
+                                {": "}
+                                {section.body}
+                              </p>
+                            ) : (
+                              <p>
+                                <strong>{section.heading}</strong>
+                              </p>
+                            )
                           ) : (
-                            <p>
-                              <strong>{section.heading}</strong>
-                            </p>
-                          )
-                        ) : (
-                          <>
-                            <p>
-                              <strong>{section.heading}</strong>
-                            </p>
-                            {section.body ? <p>{section.body}</p> : null}
-                          </>
-                        )}
-                        {section.bullets && section.bullets.length > 0 ? (
-                          <ul>
-                            {section.bullets.map((bullet) => (
-                              <li key={bullet}>{bullet}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
+                            <>
+                              <p>
+                                <strong>{section.heading}</strong>
+                              </p>
+                              {section.body ? <p>{section.body}</p> : null}
+                            </>
+                          )}
+                          {section.bullets && section.bullets.length > 0 ? (
+                            <ul>
+                              {section.bullets.map((bullet) => (
+                                <li key={bullet}>{bullet}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
 
             {pageIndex === skillGroups.length - 1 ? (
               <footer className="report-section report-footer ls-report-footer">
@@ -230,30 +233,46 @@ export function ReportDocument({ report }: ReportDocumentProps) {
                   Click here to understand this report better
                 </a>
                 <p className="ls-report-footer-links">
-                  <span className="ls-report-footer-item">
+                  <a
+                    className="ls-report-footer-item"
+                    href="https://www.brainmoto.in"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <span aria-hidden="true" className="ls-footer-icon">
                       🌐
                     </span>
                     www.brainmoto.in
-                  </span>
-                  <span className="ls-report-footer-item">
+                  </a>
+                  <a
+                    className="ls-report-footer-item"
+                    href="mailto:info@brainmoto.in"
+                  >
                     <span aria-hidden="true" className="ls-footer-icon">
                       ✉
                     </span>
                     info@brainmoto.in
-                  </span>
-                  <span className="ls-report-footer-item">
+                  </a>
+                  <a
+                    className="ls-report-footer-item"
+                    href="tel:+919960095665"
+                  >
                     <span aria-hidden="true" className="ls-footer-icon">
                       ☎
                     </span>
                     +91 99600 95665
-                  </span>
-                  <span className="ls-report-footer-item">
+                  </a>
+                  <a
+                    className="ls-report-footer-item"
+                    href="https://instagram.com/brainmoto_"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <span aria-hidden="true" className="ls-footer-icon">
                       📷
                     </span>
                     brainmoto_
-                  </span>
+                  </a>
                 </p>
               </footer>
             ) : null}

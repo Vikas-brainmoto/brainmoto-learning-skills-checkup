@@ -73,7 +73,10 @@ export function ScoreHero({
     <section className="ls-overview-block" aria-label="Score hero">
       <header className="ls-brand-header ls-brand-header-report ls-brand-header-result">
         <img src={logoUrl} alt="Brainmoto logo" className="ls-brand-logo" />
-        <h1 className="ls-title-pill">Learning Skills Check-Up</h1>
+        <h1 className="ls-title-pill ls-title-pill-result">
+          <span className="ls-title-pill-leading">Learning Skills</span>
+          <span className="ls-title-pill-trailing">Check-Up</span>
+        </h1>
       </header>
 
       <section className="ls-meta-grid">
@@ -125,43 +128,47 @@ export function ScoreHero({
       </section>
 
       <section className="ls-result-note">
-        <p>
-          <strong>Overall Support Status:</strong>{" "}
-          <span className={statusClassName}>{finalLevel}</span>
-        </p>
-        <p>
-          {emailStatus === "SENT" ? (
-            <>
-              Detailed report link has been sent to <strong>{parentEmail}</strong>.
-            </>
-          ) : emailStatus === "FAILED" ? (
-            "We could not send the report email right now. You can still use the report links below."
-          ) : (
-            <>
-              We are sending the detailed report link to{" "}
-              <strong>{parentEmail}</strong>.
-            </>
-          )}
-        </p>
-        {reportPath || reportDownloadPath ? (
-          <div className="ls-link-actions">
-            {reportPath ? (
-              <a className="ls-link-btn" href={reportPath}>
-                Open Full Report
-              </a>
-            ) : null}
-            {reportDownloadPath ? (
-              <a
-                className="ls-link-btn"
-                href={reportDownloadPath}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Download Full Report
-              </a>
-            ) : null}
+        <div className="ls-result-note-grid">
+          <div className="ls-result-note-copy">
+            <p>
+              <strong>Overall Support Status:</strong>{" "}
+              <span className={statusClassName}>{finalLevel}</span>
+            </p>
+            <p>
+              {emailStatus === "SENT" ? (
+                <>
+                  Detailed report link has been sent to <strong>{parentEmail}</strong>.
+                </>
+              ) : emailStatus === "FAILED" ? (
+                "We could not send the report email right now. You can still use the report links below."
+              ) : (
+                <>
+                  We are sending the detailed report link to{" "}
+                  <strong>{parentEmail}</strong>.
+                </>
+              )}
+            </p>
           </div>
-        ) : null}
+          {reportPath || reportDownloadPath ? (
+            <div className="ls-link-actions">
+              {reportPath ? (
+                <a className="ls-link-btn" href={reportPath}>
+                  Open Full Report
+                </a>
+              ) : null}
+              {reportDownloadPath ? (
+                <a
+                  className="ls-link-btn"
+                  href={reportDownloadPath}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Download Full Report
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </section>
     </section>
   );
