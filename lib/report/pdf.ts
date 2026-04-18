@@ -168,7 +168,7 @@ export async function generateReportPdf({
       waitUntil: "networkidle0",
       timeout: timeoutMs,
     });
-    await page.emulateMediaType("screen");
+    await page.emulateMediaType("print");
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
@@ -188,8 +188,8 @@ export async function generateReportPdf({
       );
     });
     const singlePageHeightPx = Math.min(
-      Math.max(contentHeightPx + 28, 1200),
-      18_000,
+      Math.max(contentHeightPx + 8, 1400),
+      19_000,
     );
 
     const pdfBytes = await page.pdf({
@@ -198,10 +198,10 @@ export async function generateReportPdf({
       width: "210mm",
       height: `${singlePageHeightPx}px`,
       margin: {
-        top: "9.6mm",
-        right: "12mm",
-        bottom: "12mm",
-        left: "12mm",
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
       },
     });
 
