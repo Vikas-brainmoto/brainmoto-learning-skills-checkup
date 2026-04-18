@@ -173,9 +173,36 @@ export async function generateReportPdf({
       await document.fonts.ready;
     });
 
+    const contentHeightPx = await page.evaluate(() => {
+      const body = document.body;
+      const html = document.documentElement;
+      return Math.ceil(
+        Math.max(
+          body.scrollHeight,
+          body.offsetHeight,
+          body.clientHeight,
+          html.scrollHeight,
+          html.offsetHeight,
+          html.clientHeight,
+        ),
+      );
+    });
+    const singlePageHeightPx = Math.min(
+      Math.max(contentHeightPx + 28, 1200),
+      18_000,
+    );
+
     const pdfBytes = await page.pdf({
       printBackground: true,
-      preferCSSPageSize: true,
+      preferCSSPageSize: false,
+      width: "210mm",
+      height: `${singlePageHeightPx}px`,
+      margin: {
+        top: "9.6mm",
+        right: "12mm",
+        bottom: "12mm",
+        left: "12mm",
+      },
     });
 
     return Buffer.from(pdfBytes);
