@@ -25,12 +25,7 @@ async function answerAllQuestions(page: Page): Promise<void> {
   }
 }
 
-async function submitQuestionStep(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Complete Question Step" }).click();
-  await expect(
-    page.getByText("Details and answers are valid. Submit to generate your result."),
-  ).toBeVisible();
-
+async function submitFromLastQuestion(page: Page): Promise<void> {
   await Promise.all([
     page.waitForURL(/\/result\/[A-Za-z0-9_-]+$/),
     page.getByRole("button", { name: "Submit Check-Up" }).click(),
@@ -57,10 +52,10 @@ test.describe("Check-Up end-to-end", () => {
     await page.getByLabel("Division (Optional)").fill("A");
     await page.getByRole("button", { name: "Continue To Questions" }).click();
 
-    await expect(page.getByText(/Pre-primary flow\s*•\s*Question 1 of 20/i)).toBeVisible();
+    await expect(page.getByText(/Question 1 of 20/i)).toBeVisible();
 
     await answerAllQuestions(page);
-    await submitQuestionStep(page);
+    await submitFromLastQuestion(page);
 
     await expect(page).toHaveURL(/\/result\/[A-Za-z0-9_-]+$/);
     await expect(page.getByText("Learning Ease Score")).toBeVisible();
@@ -93,10 +88,10 @@ test.describe("Check-Up end-to-end", () => {
     await page.getByLabel("Division").fill(division);
     await page.getByRole("button", { name: "Continue To Questions" }).click();
 
-    await expect(page.getByText(/Primary flow\s*•\s*Question 1 of 20/i)).toBeVisible();
+    await expect(page.getByText(/Question 1 of 20/i)).toBeVisible();
 
     await answerAllQuestions(page);
-    await submitQuestionStep(page);
+    await submitFromLastQuestion(page);
 
     await expect(page).toHaveURL(/\/result\/[A-Za-z0-9_-]+$/);
     await expect(

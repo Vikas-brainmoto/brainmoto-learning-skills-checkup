@@ -6,6 +6,7 @@ import {
   SkillSnapshot,
   type SkillSnapshotItem,
 } from "../../../components/report/SkillSnapshot";
+import { ReportFooter } from "../../../components/report/ReportFooter";
 import { prisma } from "../../../lib/db/prisma";
 import { SKILL_DEFINITIONS, type FinalLevelLabel } from "../../../lib/scoring/types";
 
@@ -172,6 +173,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
         emailStatus={emailStatus}
       />
       <SkillSnapshot skills={orderedSkillScores} />
+      <ReportFooter className="ls-result-footer" />
     </main>
   );
 }

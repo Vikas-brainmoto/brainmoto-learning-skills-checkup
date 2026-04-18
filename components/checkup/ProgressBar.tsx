@@ -1,12 +1,10 @@
 interface ProgressBarProps {
-  flowLabel: "Pre-primary" | "Primary";
   currentQuestionNumber: number;
   answeredCount: number;
   totalCount: number;
 }
 
 export function ProgressBar({
-  flowLabel,
   currentQuestionNumber,
   answeredCount,
   totalCount,
@@ -18,8 +16,7 @@ export function ProgressBar({
   return (
     <section aria-label="Progress bar" className="checkup-progress">
       <p className="checkup-progress-label">
-        {flowLabel} flow • Question {safeQuestionNumber} of {totalCount} • {answeredCount}/
-        {totalCount} answered ({percent}%)
+        Question {safeQuestionNumber} of {totalCount} • {answeredCount}/{totalCount} answered
       </p>
       <div className="checkup-progress-track" aria-hidden="true">
         <div

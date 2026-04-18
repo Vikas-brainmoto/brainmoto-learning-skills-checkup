@@ -59,6 +59,41 @@ function toFieldErrors(messages: string[]): ChildDetailsErrors {
   return errors;
 }
 
+function formatQuestionValidationErrors(
+  messages: string[],
+  questionConfig: ScoringConfig,
+): string[] {
+  const questionNumberById = new Map(
+    questionConfig.questions.map((question, index) => [question.id, index + 1]),
+  );
+
+  const formatted: string[] = [];
+
+  for (const message of messages) {
+    const missingAnswerMatch = message.match(/Missing answer for question "([^"]+)"/i);
+    if (missingAnswerMatch) {
+      const questionNumber = questionNumberById.get(missingAnswerMatch[1]);
+      if (questionNumber) {
+        formatted.push(`Missing answer for question ${questionNumber}.`);
+        continue;
+      }
+    }
+
+    const invalidAnswerMatch = message.match(/Invalid answer value for question "([^"]+)"/i);
+    if (invalidAnswerMatch) {
+      const questionNumber = questionNumberById.get(invalidAnswerMatch[1]);
+      if (questionNumber) {
+        formatted.push(`Invalid answer for question ${questionNumber}.`);
+        continue;
+      }
+    }
+
+    formatted.push(message);
+  }
+
+  return formatted;
+}
+
 export function ChildDetailsForm({
   source,
   schoolSlug,
@@ -83,11 +118,17 @@ export function ChildDetailsForm({
   const [questionConfig, setQuestionConfig] = useState<ScoringConfig | null>(null);
   const [answers, setAnswers] = useState<SubmittedAnswers>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [isQuestionStepComplete, setIsQuestionStepComplete] = useState(false);
   const [submitErrors, setSubmitErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isSchoolFlow = source === "school";
+  const gradeOptions = useMemo(
+    () =>
+      allowedGrades.filter(
+        (gradeOption) => gradeOption.trim().toUpperCase() !== "UKG",
+      ),
+    [allowedGrades],
+  );
   const currentQuestion = questionConfig?.questions[currentQuestionIndex] ?? null;
   const currentQuestionNumber = currentQuestion ? currentQuestionIndex + 1 : 0;
 
@@ -109,7 +150,7 @@ export function ChildDetailsForm({
   async function handleDetailsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const validation = validateChildDetails(values, allowedGrades);
+    const validation = validateChildDetails(values, gradeOptions);
     if (!validation.isValid) {
       setDetailErrors(toFieldErrors(validation.errors));
       return;
@@ -135,7 +176,6 @@ export function ChildDetailsForm({
       setQuestionConfig(payload.questionConfig);
       setCurrentQuestionIndex(0);
       setQuestionErrors([]);
-      setIsQuestionStepComplete(false);
       setSubmitErrors([]);
     } catch {
       setDetailErrors((current) => ({
@@ -155,24 +195,6 @@ export function ChildDetailsForm({
       [currentQuestion.id]: answer,
     }));
     setQuestionErrors([]);
-    setIsQuestionStepComplete(false);
-    setSubmitErrors([]);
-  }
-
-  function handleCompleteQuestions() {
-    if (!questionConfig) {
-      return;
-    }
-
-    const validation = validateAnswersAgainstConfig(questionConfig, answers);
-    if (!validation.isValid) {
-      setQuestionErrors(validation.errors);
-      setIsQuestionStepComplete(false);
-      return;
-    }
-
-    setQuestionErrors([]);
-    setIsQuestionStepComplete(true);
     setSubmitErrors([]);
   }
 
@@ -183,8 +205,7 @@ export function ChildDetailsForm({
 
     const answerValidation = validateAnswersAgainstConfig(questionConfig, answers);
     if (!answerValidation.isValid) {
-      setQuestionErrors(answerValidation.errors);
-      setIsQuestionStepComplete(false);
+      setQuestionErrors(formatQuestionValidationErrors(answerValidation.errors, questionConfig));
       return;
     }
 
@@ -217,9 +238,13 @@ export function ChildDetailsForm({
       };
 
       if (!response.ok) {
-        setSubmitErrors(
+        const backendErrors =
           Array.isArray(data.errors) && data.errors.length > 0
-            ? data.errors
+            ? formatQuestionValidationErrors(data.errors, questionConfig)
+            : null;
+        setSubmitErrors(
+          backendErrors && backendErrors.length > 0
+            ? backendErrors
             : [data.message ?? "Submission failed."],
         );
         return;
@@ -282,7 +307,7 @@ export function ChildDetailsForm({
                   onChange={(event) => updateValue("grade", event.target.value)}
                 >
                   <option value="">Select grade</option>
-                  {allowedGrades.map((gradeOption) => (
+                  {gradeOptions.map((gradeOption) => (
                     <option key={gradeOption} value={gradeOption}>
                       {gradeOption}
                     </option>
@@ -430,7 +455,6 @@ export function ChildDetailsForm({
         ) : (
           <section aria-label="Question step" className="checkup-step">
             <ProgressBar
-              flowLabel={questionConfig.flow === "preprimary" ? "Pre-primary" : "Primary"}
               currentQuestionNumber={currentQuestionNumber}
               answeredCount={answeredCount}
               totalCount={questionConfig.questions.length}
@@ -465,35 +489,7 @@ export function ChildDetailsForm({
               >
                 Next
               </button>
-              <button
-                type="button"
-                onClick={handleCompleteQuestions}
-                className="checkup-btn checkup-btn-primary"
-              >
-                Complete Question Step
-              </button>
-            </div>
-
-            {questionErrors.length > 0 ? (
-              <section
-                aria-label="Question validation errors"
-                className="checkup-alert checkup-alert-error"
-              >
-                <p>Please answer all required questions before continuing.</p>
-                <ul>
-                  {questionErrors.slice(0, 5).map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-                {questionErrors.length > 5 ? (
-                  <p>And {questionErrors.length - 5} more issues.</p>
-                ) : null}
-              </section>
-            ) : null}
-
-            {isQuestionStepComplete ? (
-              <section aria-label="Details submit preview" className="checkup-alert">
-                <p>Details and answers are valid. Submit to generate your result.</p>
+              {currentQuestionIndex >= questionConfig.questions.length - 1 ? (
                 <button
                   type="button"
                   onClick={handleSubmitCheckup}
@@ -502,20 +498,36 @@ export function ChildDetailsForm({
                 >
                   {isSubmitting ? "Submitting..." : "Submit Check-Up"}
                 </button>
+              ) : null}
+            </div>
 
-                {submitErrors.length > 0 ? (
-                  <section
-                    aria-label="Submission errors"
-                    className="checkup-alert checkup-alert-error"
-                  >
-                    <p>Submission failed. Please fix these issues:</p>
-                    <ul>
-                      {submitErrors.map((error) => (
-                        <li key={error}>{error}</li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
+            {questionErrors.length > 0 ? (
+              <section
+                aria-label="Question validation errors"
+                className="checkup-alert checkup-alert-error"
+              >
+                <p>Please answer all questions before submitting.</p>
+                <ul>
+                  {questionErrors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {submitErrors.length > 0 ? (
+              <section aria-label="Details submit preview" className="checkup-alert">
+                <section
+                  aria-label="Submission errors"
+                  className="checkup-alert checkup-alert-error"
+                >
+                  <p>Submission failed. Please fix these issues:</p>
+                  <ul>
+                    {submitErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                </section>
               </section>
             ) : null}
           </section>
