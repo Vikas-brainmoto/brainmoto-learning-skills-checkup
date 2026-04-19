@@ -328,7 +328,7 @@ a {
 
 .checkup-btn-quick-jump {
   width: fit-content;
-  margin-top: -0.2rem;
+  margin-top: 0.2rem;
   padding: 0.44rem 0.72rem;
   font-size: 0.84rem;
   border-radius: 999px;
@@ -1449,7 +1449,7 @@ a {
   }
 
   .report-page-shell {
-    padding-top: 0;
+    padding-top: 10mm;
   }
 
   .ls-report-paper {
