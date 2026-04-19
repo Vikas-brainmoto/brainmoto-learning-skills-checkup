@@ -1,12 +1,14 @@
 interface ProgressBarProps {
   currentQuestionNumber: number;
   answeredCount: number;
+  unansweredCount: number;
   totalCount: number;
 }
 
 export function ProgressBar({
   currentQuestionNumber,
   answeredCount,
+  unansweredCount,
   totalCount,
 }: ProgressBarProps) {
   const percent = totalCount === 0 ? 0 : Math.round((answeredCount / totalCount) * 100);
@@ -15,9 +17,12 @@ export function ProgressBar({
 
   return (
     <section aria-label="Progress bar" className="checkup-progress">
-      <p className="checkup-progress-label">
-        Question {safeQuestionNumber} of {totalCount} • {answeredCount}/{totalCount} answered
-      </p>
+      <div className="checkup-progress-head">
+        <p className="checkup-progress-label">
+          Question {safeQuestionNumber} of {totalCount} • {answeredCount}/{totalCount} answered
+        </p>
+        <span className="checkup-unanswered-chip">Unanswered: {Math.max(0, unansweredCount)}</span>
+      </div>
       <div className="checkup-progress-track" aria-hidden="true">
         <div
           className="checkup-progress-fill"

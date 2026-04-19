@@ -164,6 +164,9 @@ export function ChildDetailsForm({
       return answers[question.id] ? count + 1 : count;
     }, 0);
   }, [answers, questionConfig]);
+  const unansweredCount = questionConfig
+    ? Math.max(0, questionConfig.questions.length - answeredCount)
+    : 0;
 
   const canSubmit =
     questionConfig !== null && answeredCount === questionConfig.questions.length;
@@ -184,6 +187,19 @@ export function ChildDetailsForm({
 
     const nextIndex = Math.max(0, Math.min(questionConfig.questions.length - 1, questionNumber - 1));
     setCurrentQuestionIndex(nextIndex);
+  }
+
+  function jumpToFirstMissingQuestion() {
+    if (!questionConfig) {
+      return;
+    }
+
+    const firstMissingIndex = questionConfig.questions.findIndex((question) => !answers[question.id]);
+    if (firstMissingIndex >= 0) {
+      setCurrentQuestionIndex(firstMissingIndex);
+      setQuestionErrors([]);
+      setSubmitErrors([]);
+    }
   }
 
   function updateValue(field: keyof ChildDetailsValues, value: string) {
@@ -501,8 +517,18 @@ export function ChildDetailsForm({
             <ProgressBar
               currentQuestionNumber={currentQuestionNumber}
               answeredCount={answeredCount}
+              unansweredCount={unansweredCount}
               totalCount={questionConfig.questions.length}
             />
+            {unansweredCount > 0 ? (
+              <button
+                type="button"
+                className="checkup-btn checkup-btn-secondary checkup-btn-quick-jump"
+                onClick={jumpToFirstMissingQuestion}
+              >
+                Go to first missing
+              </button>
+            ) : null}
 
             {currentQuestion ? (
               <QuestionCard
