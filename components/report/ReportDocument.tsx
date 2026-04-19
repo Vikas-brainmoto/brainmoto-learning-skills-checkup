@@ -22,7 +22,7 @@ function scoreStatusColor(level: "Green" | "Amber" | "Red"): string {
     case "Amber":
       return "#f5ba33";
     case "Red":
-      return "#dc2626";
+      return "#a30f0f";
     default:
       return "#f5ba33";
   }
