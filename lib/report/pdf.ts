@@ -11,8 +11,8 @@ interface GenerateReportPdfInput {
 }
 
 const DEFAULT_TIMEOUT_MS = 25_000;
-const PDF_WINDOW_WIDTH = 1440;
-const PDF_WINDOW_HEIGHT = 2200;
+const PDF_WINDOW_WIDTH = 794;
+const PDF_WINDOW_HEIGHT = 1600;
 const CHROMIUM_PACKAGE_VERSION = "147.0.1";
 const DEFAULT_CHROMIUM_PACK_URL = `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_PACKAGE_VERSION}/chromium-v${CHROMIUM_PACKAGE_VERSION}-pack.tar`;
 const LOCAL_CHROME_ARGS = [
@@ -174,6 +174,12 @@ export async function generateReportPdf({
     });
 
     const contentHeightPx = await page.evaluate(() => {
+      const reportFooter = document.querySelector(".ls-report-footer") as HTMLElement | null;
+      if (reportFooter) {
+        const footerRect = reportFooter.getBoundingClientRect();
+        return Math.ceil(footerRect.bottom + window.scrollY + 24);
+      }
+
       const body = document.body;
       const html = document.documentElement;
       return Math.ceil(
@@ -188,7 +194,7 @@ export async function generateReportPdf({
       );
     });
     const singlePageHeightPx = Math.min(
-      Math.max(contentHeightPx + 8, 1400),
+      Math.max(contentHeightPx + 24, 1200),
       19_000,
     );
 

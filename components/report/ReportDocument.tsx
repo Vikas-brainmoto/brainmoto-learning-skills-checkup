@@ -41,38 +41,18 @@ function getSupportStatusClass(level: FinalLevelLabel): string {
   }
 }
 
-interface SkillGroup {
-  startIndex: number;
-  items: ReportData["skills"];
-}
-
-function buildSkillGroups(
-  skills: ReportData["skills"],
-  chunkSize: number,
-): SkillGroup[] {
-  const groups: SkillGroup[] = [];
-
-  for (let index = 0; index < skills.length; index += chunkSize) {
-    groups.push({
-      startIndex: index,
-      items: skills.slice(index, index + chunkSize),
-    });
-  }
-
-  return groups;
-}
-
 export function ReportDocument({ report }: ReportDocumentProps) {
   const statusColor = scoreStatusColor(report.easeStatusLabel);
-  const detailChunkSize = report.gradeBand === "primary" ? 2 : 3;
-  const skillGroups = buildSkillGroups(report.skills, detailChunkSize);
 
   return (
     <article className="report-paper ls-report-paper">
       <section className="ls-overview-block">
         <header className="ls-brand-header ls-brand-header-report">
           <img src={report.logoUrl} alt="Brainmoto logo" className="ls-brand-logo" />
-          <h1 className="ls-title-pill">Learning Skills Check-Up</h1>
+          <h1 className="ls-title-pill ls-title-pill-report">
+            <span className="ls-title-pill-leading">Learning Skills</span>
+            <span className="ls-title-pill-trailing">Check-Up</span>
+          </h1>
         </header>
 
         <section className="ls-meta-grid">
@@ -155,77 +135,70 @@ export function ReportDocument({ report }: ReportDocumentProps) {
       </section>
 
       <section className="ls-details-block">
-        {skillGroups.map((group, pageIndex) => (
-          <section
-            key={`detail-page-${group.startIndex}`}
-            className={`ls-detail-page ls-detail-page-${report.gradeBand} ${pageIndex === 0 ? "ls-detail-page-first" : ""}`}
-          >
-            {report.gradeBand === "primary" && pageIndex === 0 ? (
-              <div className="ls-detail-intro-primary">
-                <h2>{report.detailHeading}</h2>
-                {report.detailIntroLines.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
-            ) : null}
-
-            {report.gradeBand === "preprimary" && pageIndex === 0 ? (
-              <div className="ls-detail-intro-preprimary">
-                <h2>Learning Skills Detailed Explanation</h2>
-                <p>{report.detailHeading}</p>
-              </div>
-            ) : null}
-
-            <div className="ls-detail-skill-list">
-              {group.items.map((skill, groupSkillIndex) => {
-                const skillNumber = group.startIndex + groupSkillIndex + 1;
-
-                return (
-                  <section key={skill.skillId} className="ls-detail-skill">
-                    <h3 className="ls-detail-skill-title">
-                      {skillNumber}) {skill.detailTitle}
-                    </h3>
-                    <div className="ls-detail-skill-body">
-                      {skill.sections.map((section) => (
-                        <div key={`${skill.skillId}-${section.heading}`} className="ls-detail-section">
-                          {report.gradeBand === "preprimary" ? (
-                            section.body ? (
-                              <p>
-                                <strong>{section.heading}</strong>
-                                {": "}
-                                {section.body}
-                              </p>
-                            ) : (
-                              <p>
-                                <strong>{section.heading}</strong>
-                              </p>
-                            )
-                          ) : (
-                            <>
-                              <p>
-                                <strong>{section.heading}</strong>
-                              </p>
-                              {section.body ? <p>{section.body}</p> : null}
-                            </>
-                          )}
-                          {section.bullets && section.bullets.length > 0 ? (
-                            <ul>
-                              {section.bullets.map((bullet) => (
-                                <li key={bullet}>{bullet}</li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
+        <section className={`ls-detail-page ls-detail-page-${report.gradeBand} ls-detail-page-first`}>
+          {report.gradeBand === "primary" ? (
+            <div className="ls-detail-intro-primary">
+              <h2>{report.detailHeading}</h2>
+              {report.detailIntroLines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
             </div>
+          ) : (
+            <div className="ls-detail-intro-preprimary">
+              <h2>Learning Skills Detailed Explanation</h2>
+              <p>{report.detailHeading}</p>
+            </div>
+          )}
 
-            {pageIndex === skillGroups.length - 1 ? <ReportFooter /> : null}
-          </section>
-        ))}
+          <div className="ls-detail-skill-list">
+            {report.skills.map((skill, index) => {
+              const skillNumber = index + 1;
+
+              return (
+                <section key={skill.skillId} className="ls-detail-skill">
+                  <h3 className="ls-detail-skill-title">
+                    {skillNumber}) {skill.detailTitle}
+                  </h3>
+                  <div className="ls-detail-skill-body">
+                    {skill.sections.map((section) => (
+                      <div key={`${skill.skillId}-${section.heading}`} className="ls-detail-section">
+                        {report.gradeBand === "preprimary" ? (
+                          section.body ? (
+                            <p>
+                              <strong>{section.heading}</strong>
+                              {": "}
+                              {section.body}
+                            </p>
+                          ) : (
+                            <p>
+                              <strong>{section.heading}</strong>
+                            </p>
+                          )
+                        ) : (
+                          <>
+                            <p>
+                              <strong>{section.heading}</strong>
+                            </p>
+                            {section.body ? <p>{section.body}</p> : null}
+                          </>
+                        )}
+                        {section.bullets && section.bullets.length > 0 ? (
+                          <ul>
+                            {section.bullets.map((bullet) => (
+                              <li key={bullet}>{bullet}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+
+          <ReportFooter />
+        </section>
       </section>
     </article>
   );

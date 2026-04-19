@@ -25,6 +25,12 @@ interface ChildDetailsErrors {
   housingSocietyName?: string;
 }
 
+interface QuestionValidationIssue {
+  message: string;
+  questionNumber: number | null;
+  kind: "missing" | "invalid" | "other";
+}
+
 interface ChildDetailsFormProps {
   source: CheckupSource;
   schoolSlug?: string;
@@ -94,6 +100,23 @@ function formatQuestionValidationErrors(
   return formatted;
 }
 
+function toQuestionValidationIssues(messages: string[]): QuestionValidationIssue[] {
+  return messages.map((message) => {
+    const questionMatch = message.match(/question\s+(\d+)/i);
+    const normalized = message.toLowerCase();
+    const kind = normalized.startsWith("missing answer")
+      ? "missing"
+      : normalized.startsWith("invalid answer")
+        ? "invalid"
+        : "other";
+    return {
+      message,
+      questionNumber: questionMatch ? Number(questionMatch[1]) : null,
+      kind,
+    };
+  });
+}
+
 export function ChildDetailsForm({
   source,
   schoolSlug,
@@ -141,6 +164,27 @@ export function ChildDetailsForm({
       return answers[question.id] ? count + 1 : count;
     }, 0);
   }, [answers, questionConfig]);
+
+  const canSubmit =
+    questionConfig !== null && answeredCount === questionConfig.questions.length;
+  const isOnLastQuestion =
+    questionConfig !== null &&
+    currentQuestionIndex >= questionConfig.questions.length - 1;
+
+  const questionIssues = useMemo(
+    () => toQuestionValidationIssues(questionErrors),
+    [questionErrors],
+  );
+  const submitIssues = useMemo(() => toQuestionValidationIssues(submitErrors), [submitErrors]);
+
+  function jumpToQuestion(questionNumber: number) {
+    if (!questionConfig) {
+      return;
+    }
+
+    const nextIndex = Math.max(0, Math.min(questionConfig.questions.length - 1, questionNumber - 1));
+    setCurrentQuestionIndex(nextIndex);
+  }
 
   function updateValue(field: keyof ChildDetailsValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -489,7 +533,7 @@ export function ChildDetailsForm({
               >
                 Next
               </button>
-              {currentQuestionIndex >= questionConfig.questions.length - 1 ? (
+              {canSubmit || isOnLastQuestion ? (
                 <button
                   type="button"
                   onClick={handleSubmitCheckup}
@@ -508,8 +552,30 @@ export function ChildDetailsForm({
               >
                 <p>Please answer all questions before submitting.</p>
                 <ul>
-                  {questionErrors.map((error) => (
-                    <li key={error}>{error}</li>
+                  {questionIssues.map((issue, index) => (
+                    <li key={`${issue.message}-${index}`}>
+                      {issue.questionNumber !== null ? (
+                        <>
+                          <span>
+                            {issue.kind === "missing"
+                              ? "Missing answer for question "
+                              : issue.kind === "invalid"
+                                ? "Invalid answer for question "
+                                : "Question "}
+                          </span>
+                          <button
+                            type="button"
+                            className="checkup-inline-link"
+                            onClick={() => jumpToQuestion(issue.questionNumber!)}
+                          >
+                            {issue.questionNumber}
+                          </button>
+                          <span>.</span>
+                        </>
+                      ) : (
+                        <span>{issue.message}</span>
+                      )}
+                    </li>
                   ))}
                 </ul>
               </section>
@@ -523,8 +589,30 @@ export function ChildDetailsForm({
                 >
                   <p>Submission failed. Please fix these issues:</p>
                   <ul>
-                    {submitErrors.map((error) => (
-                      <li key={error}>{error}</li>
+                    {submitIssues.map((issue, index) => (
+                      <li key={`${issue.message}-${index}`}>
+                      {issue.questionNumber !== null ? (
+                        <>
+                            <span>
+                              {issue.kind === "missing"
+                                ? "Missing answer for question "
+                                : issue.kind === "invalid"
+                                  ? "Invalid answer for question "
+                                  : "Question "}
+                            </span>
+                            <button
+                              type="button"
+                              className="checkup-inline-link"
+                              onClick={() => jumpToQuestion(issue.questionNumber!)}
+                            >
+                              {issue.questionNumber}
+                            </button>
+                            <span>.</span>
+                          </>
+                        ) : (
+                          <span>{issue.message}</span>
+                        )}
+                      </li>
                     ))}
                   </ul>
                 </section>
