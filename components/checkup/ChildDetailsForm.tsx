@@ -197,8 +197,6 @@ export function ChildDetailsForm({
     const firstMissingIndex = questionConfig.questions.findIndex((question) => !answers[question.id]);
     if (firstMissingIndex >= 0) {
       setCurrentQuestionIndex(firstMissingIndex);
-      setQuestionErrors([]);
-      setSubmitErrors([]);
     }
   }
 
@@ -250,11 +248,22 @@ export function ChildDetailsForm({
       return;
     }
 
-    setAnswers((current) => ({
-      ...current,
+    const nextAnswers = {
+      ...answers,
       [currentQuestion.id]: answer,
-    }));
-    setQuestionErrors([]);
+    };
+
+    setAnswers(nextAnswers);
+
+    if (questionConfig && questionErrors.length > 0) {
+      const validation = validateAnswersAgainstConfig(questionConfig, nextAnswers);
+      setQuestionErrors(
+        validation.isValid
+          ? []
+          : formatQuestionValidationErrors(validation.errors, questionConfig),
+      );
+    }
+
     setSubmitErrors([]);
   }
 
@@ -520,15 +529,6 @@ export function ChildDetailsForm({
               unansweredCount={unansweredCount}
               totalCount={questionConfig.questions.length}
             />
-            {unansweredCount > 0 ? (
-              <button
-                type="button"
-                className="checkup-btn checkup-btn-secondary checkup-btn-quick-jump"
-                onClick={jumpToFirstMissingQuestion}
-              >
-                Go to first missing
-              </button>
-            ) : null}
 
             {currentQuestion ? (
               <QuestionCard
@@ -577,6 +577,15 @@ export function ChildDetailsForm({
                 className="checkup-alert checkup-alert-error"
               >
                 <p>Please answer all questions before submitting.</p>
+                {unansweredCount > 0 ? (
+                  <button
+                    type="button"
+                    className="checkup-btn checkup-btn-secondary checkup-btn-quick-jump"
+                    onClick={jumpToFirstMissingQuestion}
+                  >
+                    Go to first missing
+                  </button>
+                ) : null}
                 <ul>
                   {questionIssues.map((issue, index) => (
                     <li key={`${issue.message}-${index}`}>
